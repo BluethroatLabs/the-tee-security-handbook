@@ -1,5 +1,3 @@
-import React from 'react'
-
 type Props = {
   title?: string
   subtitle?: string
@@ -16,6 +14,7 @@ export default function PageBanner({
   return (
     <div
       style={{
+        marginTop: '1.5rem',
         marginBottom: '2.5rem',
         padding: '3rem 2rem',
         aspectRatio: '16 / 4',
