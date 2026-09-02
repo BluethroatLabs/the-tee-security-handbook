@@ -1,9 +1,29 @@
 import Link from '@docusaurus/Link'
-import data from '../../generated/contributors'
 import styles from './styles.module.css'
 
-type Contributor = (typeof data.contributors)[number]
 type LinkKind = 'email' | 'github' | 'x' | 'telegram'
+
+type Contributor = {
+  readonly name: string
+  readonly avatar: string | null
+  readonly tags: readonly string[]
+  readonly about: string | null
+  readonly links: Readonly<Record<string, string>>
+  readonly hideStats: boolean
+  readonly commits: number
+  readonly additions: number
+  readonly deletions: number
+  readonly currentLines: number
+  readonly currentLineShare: number
+  readonly lastContribution: string | null
+}
+
+type ContributorData = {
+  readonly repositoryUrl: string
+  readonly isShallowRepository: boolean
+  readonly scope: { readonly documents: number }
+  readonly contributors: readonly Contributor[]
+}
 
 const linkLabels: Record<LinkKind, string> = {
   email: 'Email',
@@ -152,7 +172,7 @@ function ProfileContributor({ contributor }: { contributor: Contributor }) {
   )
 }
 
-export default function Contributors() {
+export default function Contributors({ data }: { data: ContributorData }) {
   const activeContributors = data.contributors.filter(
     (contributor) =>
       !contributor.hideStats &&

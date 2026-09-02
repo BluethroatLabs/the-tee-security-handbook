@@ -4,6 +4,7 @@ node_modules/
 # Docusaurus
 .docusaurus/
 build/
+/docs/_generated/
 
 # OS
 .DS_Store

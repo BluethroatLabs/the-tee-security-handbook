@@ -7,8 +7,27 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const config = JSON.parse(
   readFileSync(resolve(root, 'contributors.config.json'), 'utf8')
 )
-const jsonOutputPath = resolve(root, 'src/generated/contributors.json')
-const moduleOutputPath = resolve(root, 'src/generated/contributors.ts')
+const versionFlagIndex = process.argv.indexOf('--version')
+const snapshotVersion =
+  versionFlagIndex === -1 ? null : process.argv[versionFlagIndex + 1]
+
+if (snapshotVersion && !/^[a-zA-Z0-9._-]+$/.test(snapshotVersion)) {
+  throw new Error(`Invalid documentation version: ${snapshotVersion}`)
+}
+
+const contentRoot = snapshotVersion
+  ? `versioned_docs/version-${snapshotVersion}`
+  : 'docs'
+const jsonOutputPath = resolve(
+  root,
+  contentRoot,
+  '_generated/contributors.json'
+)
+const moduleOutputPath = resolve(
+  root,
+  contentRoot,
+  '_generated/contributors.ts'
+)
 const excluded = new Set(config.exclude ?? [])
 
 function git(args, fallback = '') {
