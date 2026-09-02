@@ -1,0 +1,27 @@
+---
+title: Platform Profiles and Architectures
+---
+
+import PageBanner from '@site/src/components/PageBanner';
+
+<PageBanner
+  title=""
+  image="/img/banners/PG-04_The_Machines_We_Rely_On.avif"
+/>
+
+
+# Platform Profiles and Architectures
+
+The TEE ecosystem is huge and fragmented. Intel SGX/TDX, AMD SEV-SNP, ARM CCA, Google's CCv3, Azure CVMs, custom FPGA enclaves, confidential GPUs, and dozens of managed platforms all exist. Each with its own attestation flow, threat model, and operational quirks. But in practice, Web3 protocols do **not** use all of them.
+
+When we surveyed the top Web3 teams actually deploying TEE-based production systems today, MEV protection layers, private matching engines, confidential oracles, cross-chain bridges, and rollup infrastructure, two platforms consistently stood out:
+
+1. **AWS Nitro Enclaves**
+2. **dStack Confidential Compute Infrastructure**
+
+These two represent the overwhelming majority of real-world TEE deployments in Web3 right now. Nitro Enclaves dominate due to AWS's ubiquity, good-enough isolation guarantees, and production-ready tooling. dStack stands out as the only specialised TEE infrastructure provider built *specifically* for crypto protocols, with stronger security defaults, attestation support, and Web3-native abstractions.
+
+Because founders and CTOs shouldn't have to read every vendor whitepaper, kernel patch note, and attestation RFC just to choose the right platform, this section breaks down **how these infrastructures actually work under the hood,** in clear language, without marketing fluff.
+
+Our goal is simple: Give protocol teams a practical, digestible understanding of each architecture's guarantees, limitations, and operational realities so they can make an informed decision without spending weeks untangling documentation across vendors.
+

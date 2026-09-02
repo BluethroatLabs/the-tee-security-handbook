@@ -1,0 +1,201 @@
+---
+title: AWS Nitro System
+slug: /platforms/aws-nitro-system
+---
+
+import PageBanner from '@site/src/components/PageBanner';
+
+<PageBanner
+  title=""
+  image="/img/banners/PG-04A_Steel_Without_a_Kernel.avif"
+/>
+
+
+# AWS Nitro System
+
+Amazon EC2 is a web service that provides secure, resizable compute capacity in the cloud. The AWS Nitro System is the underlying platform for all modern EC2 instances. The AWS Nitro System is a combination of purpose built server designs, data processors, system management components, and specialized firmware to provide a higher level of security to all AWS services and applications deployed on top of it.
+
+Three key components of the Nitro System help facilitate this:
+
+- **Purpose-built Nitro Cards** - Hardware devices designed by AWS that provide overall system control and input/output (I/O) virtualization independent of the main system board with its CPUs and memory.
+- **The Nitro Security Chip** - Enables a secure boot process for the overall system based on a hardware root of trust, the ability to offer bare metal instances, as well as defense in depth that offers protection to the server from unauthorized modification of system firmware.
+- **The Nitro Hypervisor** - A deliberately minimized and firmware-like hypervisor designed to provide strong resource isolation, and performance that is nearly indistinguishable from a bare metal server.
+
+> Although these components are designed to be complementary to each other, an application does not need to use them together.
+
+![AWS Nitro System — Architecture](/img/diagrams/nitro_system.png)
+
+## Nitro Cards
+
+All modern EC2 servers are made up of a main system board and one or more Nitro Cards. The system board is akin to a motherboard in a traditional system consisting of host CPUs and memory while a Nitro Card is a dedicated PCIe expansion card with custom ASICs and it operates independently from main system board which runs deployed applications.
+
+The Nitro Card implements outward interfaces used by EC2 instances (for provisioning/managing compute, memory and storage) along with traditional I/O interfaces (such as networking and storage). This system provides a logical isolation between services which interact with "outside" world and customer applications by offloading all I/O interactions to a dedicated, self-contained computing device.
+
+Nitro cards run AWS designed SoC and firmware which can be independently live-updated using cryptographically signed software packages. For server enclosures containing more than one Nitro Card, the cards are connected through a isolated network which provides a communication channel between the cards as well as the server Baseboard Management Controller.
+
+### Nitro Controller
+
+In case of multiple Nitro Cards in a server, the primary card is called the Nitro Controller. The Nitro Controller provides the **hardware root of trust** for the overall system and manages all other components of the server system.
+
+#### Firmware Management
+
+The firmware for all system components is stored on an encrypted SSD attached directly to the Nitro Controller. The encryption for this SSD is protected by a combination of a TPM and secure boot features of the platform SoC. In the case of AWS Outpost deployments, a dedicated Nitro Security Key is also used along with a TPM and secure boot to protect the encryption key for the SSD, which is connected directly to the Nitro Controller.
+
+#### Secure Boot Design
+
+The secure boot process of the SoC in the Nitro Controller starts with its boot ROM and extending a chain of trust by measuring and verifying early stages firmware stored in the SSD attached to the Nitro Controller. A TPM is then used to record the initial boot code measurements, and to extend measurements to additional system firmware. The cryptographic keys embedded in the TPM are used to digitally sign the complete set of known good system measurements. This digitally signed file is then compared to all subsequent system measurements at each reboot to detect any unexpected changes.
+
+If no changes are detected, additional decryption keys encrypted by keys locked in the TPM are used to decrypt additional data in the system to allow the boot process to continue. If changes are detected, decryption is halted and the system is immediately removed from service.
+
+#### Interface between the server and network
+
+Nitro Controller is the **exclusive** gateway between the physical server and AWS services like EC2 Control Plane, EBS and Amazon VPC. The Nitro Controller presents a set of strongly authenticated and encrypted APIs, which are securely logged for every action, for the server to access the control plane services. The APIs are managed by robust access management policies and Amazon claims that these APIs have been formally verified against memory safety errors and network misconfigurations.
+
+### Nitro I/O Cards
+
+In addition to the Nitro Controller, a server can have specialised Nitro I/O cards which incorporate extra hardware and firmware to support functions such as VPC networking, EBS storage, and local NVMe storage. These cards use hardware offload engines with integrated secure key storage to encrypt data for both storage and networking. Encryption keys for EBS, instance store, and VPC networking exist only in the protected volatile memory of the Nitro Cards and are inaccessible to both AWS personnel and other workloads running on the main system.
+
+## Nitro Security Chip
+
+The Nitro Controller (along with other cards) operate as one domain of a server instance and the mainboard (with host CPUs and memory) operates as the other domain. Although the Nitro Controller provides hardware backed security in the Nitro System, the mainboard of the system might still run a malicious application which attempts to compromise the integrity of the server. To mitigate against this and to allow the chain of trust of the Nitro System to extend to the entire server, an additional component called Nitro Security Chip.
+
+The Nitro Security Chip, controlled by the Nitro Controller, is a hardware module integrated onto the system mainboard which intercepts and moderates all firmware level operations. It is placed between the BMC and host CPU on it's PCI connection, which enables this interface to be logically firewalled on production systems. The Nitro Controller, through its control of the Nitro Security Chip, is therefore able to mediate and validate updates to the firmware, or programming of other non-volatile devices, on the system mainboard or Nitro Cards of a system. This systems also has the added benefit that host CPUs cannot modify the system firmware even in bare-metal mode where the hypervisor is managed by customer application.
+
+The Nitro Security Chip performs a second essential security role at system boot or reset. It maintains the server mainboard, CPU, and BMC in a physical reset state. This allows the Nitro Controller to first finish its secure boot process, then authenticate the integrity of the BIOS, BMC, and all other system firmware. Only after this verification is complete does the Nitro Controller command the Nitro Security Chip to deactivate the reset, permitting the host CPUs and BMC to begin their own boot process using the now-validated firmware.
+
+## Nitro Hypervisor
+
+The Nitro Hypervisor is a deliberately minimized and specialized component, possessing only the exact capabilities needed for its assigned tasks. Its core functionalities include:
+
+- Receiving VM management commands (start/stop) from the Nitro Controller.
+- Partitioning memory and CPU via the server host CPU's hardware virtualization.
+- Assigning SR-IOV (single-root input/output virtualization) functions from Nitro hardware (e.g., NVMe storage, ENA networking) over PCIe to the appropriate VM.
+
+On instances which have them, the Nitro Hypervisor also manages hardware accelerators (either AWS or third-party GPUs) by assigning them to VMs and handling error recovery for functions that cannot be performed on out-of-band interfaces.
+
+Crucially, the Nitro hypervisor is designed without a networking stack, general-purpose file systems, peripheral device drivers, a shell or any interactive access. This minimalism and simplicity inherently provide a significant security benefit compared to traditional hypervisors. The hypervisor code is a AWS managed, cryptographically signed component on the encrypted storage attached to the Nitro Controller allowing systems using both Nitro Controllers and Nitro Hypervisor to derive chain of trust from a single hardware backed root of trust.
+
+The broader Nitro architecture shifts data processing and I/O virtualization into dedicated hardware components, reducing hypervisor responsibilities. This hardware offload enhances performance and isolation while enabling EC2's bare-metal instance types, since virtualization of I/O and system management no longer depends on a resident hypervisor.
+
+The Nitro Hypervisor's meticulous and intentional minimalist design provides two key defensive layers:
+
+- **Proactive Attack Surface Reduction:** It removes entire classes of vulnerabilities by excluding non-essential features, thereby preventing common hypervisor threats like remote networking attacks and driver-based privilege escalations.
+- **Inherently Inhospitable Environment:** Even if a privilege escalation bug is exploited, an attacker gains no useful foothold. The environment lacks standard operating system resources, including interactive shells, file systems, common user-space utilities and access to resources that facilitate lateral movement within the infrastructure.
+
+## NO AWS Operator Access
+
+> By design the Nitro System has no operator access. There is no mechanism for any system or person to log in to EC2 Nitro hosts, access the memory of EC2 instances, or access any customer data stored on local encrypted instance storage or remote encrypted EBS volumes. If any AWS operator, including those with the highest privileges, needs to do maintenance work on an EC2 server, they can only use a limited set of authenticated, authorized, logged, and audited administrative APIs. None of these APIs provide an operator the ability to access customer data on the EC2 server. Because these are designed and tested technical restrictions built into the Nitro System itself, no AWS operator can bypass these controls and protections.
+
+This is verbatim from Amazon's whitepaper on security design of AWS Nitro Systems.
+
+## Side-Channel Protections in the Nitro System
+
+Virtualized EC2 instance types fall into two categories:
+
+- **Fixed performance instances**, in which CPU and memory resources are pre-allocated and dedicated to a virtualized instance for the lifetime of that instance on the host and
+- **Burstable performance instances**, in which CPU and memory resources can be overcommitted in order to support larger numbers of virtualized instances running on a server and in turn offer customers a reduced relative instance cost for applications with low-to-moderate CPU utilization.
+
+In either case, the design and implementation of the Nitro Hypervisor includes multiple protections for potential side channels.
+
+#### Resource Isolation
+
+Side-channel attacks usually rely on spying on shared resources (like shared caches or branch predictors). Nitro's approach minimizes or eliminates sharing entirely by a strict separation of hardware resources between instances, cutting off the most common attack paths. Fixed performance instances receive dedicated CPU cores and memory for their entire lifetime and memory pages are never shared or deduplicated between instances.
+
+#### No Shared CPU Threads
+
+Across all Nitro based instances, Hyper-Threading or SMT Co-Tenancy is disabled completely so that CPU threads are never shared between instances. Instance vCPU counts are scaled in a manner which endures that any instance is assigned either whole cores or whole SMT pairs. This impairs an adversary's ability to observe sensitive timing or cache behavior for different instances on the same core.
+
+Even in Burstable instances two instances may use the same core at different times, but never at the same time and when the core switches from one instance to another, the Nitro Hypervisor flushes microarchitectural state (cache entries, CPU prediction structures, etc.).
+
+#### **Aggressive State Reset Between Context Switches**
+
+When multiple Burstable instances time-slice on the same core, the Nitro system clears CPU state thoroughly upon each switch preventing data residue from leaking across tenants via timing signals or cached data.
+
+#### **Hypervisor-Level Architectural Separation**
+
+The Nitro Hypervisor design inherently avoids vulnerabilities that require shared address spaces or mixed workloads:
+
+- The Nitro Hypervisor's memory is isolated from customer instance memory.
+- No part of EC2's I/O virtualization stack runs on the main server CPU that executes customer workloads.
+- Software-defined I/O is offloaded to dedicated Nitro hardware, preventing accidental mixing of customer data and host processes.
+- Customer I/O data is processed on dedicated Nitro hardware, **not** in shared host CPU caches or memory. This eliminates entire classes of cache-based or memory-buffer side channels.
+
+#### Overview
+
+| Layer | What It Protects | High-Level Purpose |
+|-------|------------------|---------------------|
+| **Dedicated CPU + Memory** | Prevents shared hardware state | Eliminates most side-channel vectors |
+| **No SMT Sharing** | Removes attacker co-location | Blocks cache-timing attacks |
+| **State Flush on Switch** | CPU microarchitecture | Ensures no leftover signals between tenants |
+| **Memory Never Shared** | RAM isolation | Prevents data remanence & Meltdown-like leaks |
+| **Dedicated I/O Hardware** | Customer data paths | Avoids host CPU/cache exposure |
+| **Hypervisor Address-Space Isolation** | Host vs. guest boundaries | Prevents host/guest cross-leakage |
+
+## Nitro System's Security Overview (Application Context)
+
+The Nitro System provides multiple layers of security vis-á-vis cryptographic, hardware-based, and permission-based, ensuring that sensitive operations happen safely and only with explicit, recent authorization from the customer. Even if one layer fails, several others remain in place to protect customer data. Below is an overview of what happens when one attaches an encrypted EBS volume to a running Nitro based EC2 instance using either AWS CLI/SDK or the GUI based Management Console:
+
+#### **Strong Identity & Authorization**
+
+Before the Nitro System does anything, the IAM identity of the operator must be authenticated. Control plane services are scoped with each service having only the specific permissions it needs (separation of duties). This ensures only the right person can request an action, and only tightly-scoped internal services can carry it out.
+
+#### **Cryptographically Controlled Access to Customer Encryption Keys**
+
+When an encrypted EBS volume is attached, its data key must be decrypted. AWS KMS and Nitro enforce strong cryptographic controls ensuring:
+
+- KMS decrypts the EBS key only if the caller is authorized.
+- Nitro itself can access a customer's KMS key only when the customer has just authorized the request.
+- IAM Forward Access Sessions and KMS Grants ensure the sessions are tightly bounded and temporary.
+
+#### **Double Encryption of Sensitive Key Material in Transit**
+
+When AWS KMS returns the decrypted EBS key to the Nitro host:
+
+1. TLS encrypts the entire network channel (standard transport encryption).
+2. The key itself is encrypted again using the Nitro host's public key (asymmetric encryption unique to that physical server).
+
+Only the Nitro hardware that will use the key holds the necessary private key. Even if someone broke TLS, they'd still face an additional layer of cryptography tied to a specific Nitro server.
+
+#### **Hardware-Isolated Decryption, Memory Containment and Resource Assignment**
+
+Once the encrypted key reaches the Nitro host it can only be decrypted by Nitro Card's hardware, is stored only in volatile memory and exists only as long as the volume is in use and is removed when the attachment ends. This ensures no long-term or persistent exposure. The Nitro system determines which instance receives which virtual or physical NVMe device:
+
+- The hypervisor or bare-metal interface receives instructions from the Nitro Controller.
+- Only the intended instance receives access to the device, enforced via PCIe and SR-IOV hardware mechanisms.
+
+#### **Inline, Always-On Data Encryption**
+
+All data processed by the Nitro EBS Cards is:
+
+- Automatically encrypted using AES-256 XTS before leaving the card.
+- Offloaded to dedicated hardware and optionally encrypted again at the file-system layer by the customer for an additional layer.
+
+## Nitro System's Security Overview (Service Context)
+
+The Nitro System provides a strong base of technical and architectural concepts for a cloud application. This is further enhanced in the context of the full set of robust controls in place at AWS to maintain security and data protection in the AWS Cloud.
+
+AWS managed environments are continuously audited with [certifications from accreditation bodies](https://aws.amazon.com/compliance/programs/) across geographies and verticals.
+
+> It is HIGHLY encouraged that the reader check the specific certifications (and their criteria) and administration policies of the AWS service and location their deployments might be using.
+
+AWS Outposts also offers the option to run AWS services on-premise on Nitro System based hardware.
+
+#### Infrastructure Security
+
+The security of the Amazon Web Services (AWS) cloud is built upon its core infrastructure, which encompasses the hardware, software, networking, and facilities that operate all AWS services. It is continuously monitored to help ensure the confidentiality, integrity, and availability of customer data. Clients utilizing AWS can leverage this secure global infrastructure, while retaining ownership of their data, including the capacity to encrypt, relocate, and manage its retention.
+
+#### Physical Access
+
+Physical access to AWS data centres is managed under stringent protocols at both the perimeter and individual building entry points. Professional security staff enforce these controls using video surveillance, intrusion detection systems, and multi-factor authentication that includes biometrics. Authorized personnel must successfully pass two-factor authentication a minimum of two times to reach data center floors. All visitors are required to present identification and are continuously escorted by authorized staff while signed in. Access privileges are granted exclusively to employees and contractors with a demonstrated, legitimate business requirement. These privileges are revoked immediately when the business need ceases, regardless of the individual's continued employment status with Amazon or AWS. All physical access by AWS employees is consistently logged and subject to routine audit.
+
+#### Media Sanitization
+
+Media storage devices containing customer data are classified as Critical by AWS. The organization adheres to exacting standards for the installation, servicing, and eventual destruction of these devices once they are decommissioned. At the end of a device's useful life, AWS performs media sanitization following the specific techniques outlined in the NIST 800-88 guidelines. Any device that has stored customer data remains under AWS control until this secure decommissioning process is fully completed.
+
+#### Data Protection
+
+All data transmitted across the AWS global network, which interconnects its data centers and Regions, is automatically encrypted at the physical layer before it leaves secured facilities. This base layer of security is supplemented by additional encryption layers, such as for all VPC peering traffic between Regions and all TLS connections for customer or service-to-service communication. AWS provides services that enable clients to easily encrypt data both in transit and at rest, ensuring only authorized access. This includes using keys managed by the client through AWS KMS, or by managing their own keys with [AWS CloudHSM](https://aws.amazon.com/cloudhsm/), which uses [FIPS 140-2](https://csrc.nist.gov/pubs/fips/140-2/upd2/final) Level 3 validated Hardware Security Modules (HSMs).
+
+The infrastructure also provides the control and visibility necessary to comply with regional data privacy laws and regulations. Its global design allows clients to select the specific Regions where their data is physically located, thereby meeting data residency requirements.
+
+> Although a properly configured, managed and monitored AWS Nitro based EC2 instance is more than good enough for most applications, AWS provides TEE based execution environments which builds on top of the Nitro System. These environment are known as [**AWS Nitro Enclaves**](https://aws.amazon.com/ec2/nitro/nitro-enclaves/).

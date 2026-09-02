@@ -1,0 +1,23 @@
+---
+title: TEEs in Web3
+---
+
+import PageBanner from '@site/src/components/PageBanner';
+
+<PageBanner
+  title=""
+  image="/img/banners/PG-03_Trust_in_a_Trustless_World.avif"
+/>
+
+
+# TEEs in Web3
+
+Most of the infrastructure in Web3 already runs on someone else's computer: cloud VMs, managed databases, RPC providers, rollup sequencers, indexers, etc. Trusted Execution Environments (TEEs) give us a way to keep using that infrastructure *without* handing it full visibility and control over user data. In practice, TEEs are used as hardware-isolated co-processors: the chain (or dApp) sends encrypted state/inputs in, the enclave computes, and posts back only the result plus a remote-attestation proof.
+
+What makes TEEs relevant to Web3 is not just confidentiality, but *who* can operate the hardware. A TEE-based system can be run by permissionless node operators, while still keeping order-flow, strategy, or user data hidden from them. This is exactly what you want for things like private DEX matching, encrypted mempools / MEV protection, confidential rollup proving, oracle/bridge logic, auctions, or any outsourced execution where the operator is adversarial by default.
+
+Compared to pure ZK or FHE-only designs, TEEs give you "internet-speed privacy": near-native CPU performance, no exotic circuits, and much simpler integration with existing chains and wallets. The trade-off is an explicit hardware trust anchor (Intel/AMD + cloud vendor) and a more delicate operational story: you must treat the parent VM as hostile, validate attestation correctly, and harden all enclave I/O paths. In other words, TEEs don't remove trust, they *re-locate* and make it auditable.
+
+For protocol teams, choosing TEE infra therefore becomes a threat-model and UX decision, not a hype decision. You have to answer: What are we protecting (user identity, order-flow, validator keys)? Who are we trusting (cloud vendor, node operator set, HSM/KMS)? What availability and latency do we need? How much operational overhead (DevOps, monitoring, incident response) can we realistically carry?
+
+Later in this document we'll break down concrete decision factors and provide a comparison matrix across popular platforms (Nitro Enclaves, SGX/TDX, AMD SEV-SNP, dStack-style infra, etc.). The goal isn't to crown a single "best" TEE, but to show which combinations of guarantees, risks, and headaches line up with typical Web3 use-cases: rollups, DEXes, bridges, oracles, and privacy-preserving DeFi.

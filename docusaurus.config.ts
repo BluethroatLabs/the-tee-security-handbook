@@ -20,6 +20,8 @@ const config = {
           routeBasePath: '/',
           showLastUpdateAuthor: true,
           showLastUpdateTime: true,
+          lastVersion: 'current',
+          versions: { current: { label: '0.3' } },
         },
         blog: false,
         theme: { customCss: './src/css/custom.css' },
@@ -33,13 +35,17 @@ const config = {
       title: 'TEE Security Handbook',
       logo: { alt: 'Bluethroat Labs', src: 'img/logo.png' },
       items: [
-        // {
-        //   type: 'docsVersionDropdown',
-        //   position: 'right',
-        //   dropdownActiveClassDisabled: true,
-        //   label: 'Version',
-        //   versions: { 0.2: { label: '0.2 (Latest)' }, 0.1: { label: '0.1' } },
-        // },
+        {
+          type: 'docsVersionDropdown',
+          position: 'right',
+          dropdownActiveClassDisabled: true,
+          label: 'Version',
+          versions: {
+            current: { label: '0.3 (Latest)' },
+            0.2: { label: '0.2' },
+            0.1: { label: '0.1' },
+          },
+        },
         {
           href: 'https://bluethroatlabs.com',
           label: 'Website',

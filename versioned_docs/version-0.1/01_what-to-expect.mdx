@@ -1,0 +1,86 @@
+---
+title: What to expect out of the document
+---
+
+import PageBanner from '@site/src/components/PageBanner';
+
+<PageBanner
+  title=""
+  image="/img/banners/PG-01_Rules_of_Engagement.avif"
+/>
+
+
+# What to expect out of the document
+
+## Intended Audience
+
+This document is intended for use in the web3 industry by protocols that leverage TEEs and depend on TEEs for (critical) functions in their protocols. This document is not intended to be a general TEE security document, but specifically for TEE security for web3 protocols.
+
+## A note about hardware security
+
+This document deliberately **does not** dive deep into hardware-level attacks on TEEs. Those attacks are fascinating, academically rigorous, and they tend to grab headlines. Every few years, a new paper breaks out (WireTap, BatteringRAM, TeeDotFail) showing a sophisticated hardware exploit that bypasses confidentiality, integrity, or attestation guarantees.
+
+But here is the uncomfortable truth:
+
+***Hardware attacks are not what actually causes Web3 TEE protocols to get rekt***
+
+In practice, the failures that bankrupt protocols are almost always the *boring, old, predictable mistakes*:
+
+- incomplete attestation verification
+- trusting the parent instance
+- leaking secrets over vsock metadata
+- timing oracles revealing private data
+- hardcoded keys inside the EIF
+- KMS misconfigurations
+- and on and on and on
+
+These issues appear mundane, but they are the real reason TEE-based Web3 protocols suffer catastrophic losses. Hardware attacks are glamorous but *software*, *architecture*, and *usage errors* are what consistently break real protocols.
+
+This document therefore focuses on **practical, implementation-level security**, not academic hardware research. The goal is to help Web3 teams avoid the failures that *actually happen* in the field, not the ones that trend on Twitter for a week.
+
+A few recent (very cool, very academic) hardware exploits worth reading nonetheless:
+
+- https://batteringram.eu/
+- https://wiretap.fail/
+- https://tee.fail/
+
+## Intended Impact
+
+The ideal outcome of this document is that a Web3 protocol CEO can sit with their CTO, go through this material, and significantly improve the security posture of their protocol (the ones that are leveraging TEEs).
+
+Another ideal outcome is that protocols considering TEEs for the first time read this document before implementation, allowing them to design far more robust, defensible, and production-ready architectures from day one.
+
+## What this document is NOT
+
+This is not a hardware security research paper.  
+We do not explore voltage glitching, EM fault injection, speculative execution side-channels, or any of the cutting-edge academic attacks that sometimes hit headlines.
+
+This document is not an attempt to be a comprehensive encyclopedia of TEEs, nor does it aim to catalogue every known hardware nuance across Intel SGX/TDX, AMD SEV-SNP, ARM CCA, or Nitro.
+
+This document is not an academic exploration or a theoretical treatise.  
+Its focus is practical, real-world TEE usage in Web3, nothing else.
+
+This is a resource for TEE security engineers, not TEE security researchers.  
+It assumes that the reader cares about building and deploying secure systems, not proving formal models or publishing papers.
+
+This document is also not concerned with uses of TEEs outside Web3.  
+There may be dozens of books, standards, and academic references about TEEs: we don't care.  
+This is written specifically for Web3 protocols.
+
+## Industry Context
+
+TEEs matter for Web3 because they address a unique class of problems that blockchains cannot solve alone: privacy, adversarial infrastructure, and confidential off-chain compute.
+
+Web3 systems frequently rely on third-party operators: sequencers, validators, provers, bridges, oracles. All of them run infrastructure that users cannot trust by default. TEEs allow sensitive computation, key material, and transaction data to remain protected even when the underlying operator, host machine, or cloud environment is adversarial.
+
+For protocols that require encrypted mempools, private order flow, cross-chain signatures, proving infrastructure, or confidential state transitions, TEEs provide a programmable, hardware-backed root of trust.
+
+Used correctly, they can significantly harden critical components while enabling new cryptographic and economic designs that would otherwise be infeasible.
+
+## Legal Disclaimer
+
+Nothing in this document constitutes legal, security, financial, or operational advice.
+
+Bluethroat Labs, its authors, and contributors take no responsibility for any damages, losses, exploits, or failures resulting from the use or misuse of the content herein.
+
+All architectural and security decisions are the sole responsibility of the reader.
