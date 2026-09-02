@@ -16,7 +16,7 @@ const config = {
       'classic',
       {
         docs: {
-          sidebarPath: require.resolve('./sidebars.js'),
+          sidebarPath: './sidebars.ts',
           routeBasePath: '/',
           showLastUpdateAuthor: true,
           showLastUpdateTime: true,

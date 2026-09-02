@@ -1,4 +1,6 @@
-const sidebars = {
+import type { SidebarsConfig } from '@docusaurus/plugin-content-docs'
+
+const sidebars: SidebarsConfig = {
   docs: [
     // Overview
     { type: 'doc', id: 'index', label: 'Executive Summary' },
