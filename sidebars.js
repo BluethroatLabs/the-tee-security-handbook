@@ -13,17 +13,29 @@ const sidebars = {
       link: { type: 'doc', id: 'platform-profiles-and-architectures' },
       collapsed: true,
       items: [
-        { type: 'doc', id: 'Platforms/04A_aws-nitro-system', label: 'AWS Nitro System' },
+        {
+          type: 'doc',
+          id: 'Platforms/04A_aws-nitro-system',
+          label: 'AWS Nitro System',
+        },
         {
           type: 'category',
           label: 'AWS Nitro Enclaves',
           link: { type: 'doc', id: 'Platforms/04B_aws-nitro-enclaves' },
           collapsed: true,
           items: [
-            { type: 'doc', id: 'Platforms/04C_aws-nitro-threat-vectors-paranoid', label: 'AWS Nitro Threat Vectors [PARANOID]' },
+            {
+              type: 'doc',
+              id: 'Platforms/04C_aws-nitro-threat-vectors-paranoid',
+              label: 'AWS Nitro Threat Vectors [PARANOID]',
+            },
           ],
         },
-        { type: 'doc', id: 'Platforms/04D_dstack-decentralized-cloud-tees', label: 'Dstack – Decentralized Cloud TEEs' },
+        {
+          type: 'doc',
+          id: 'Platforms/04D_dstack-decentralized-cloud-tees',
+          label: 'Dstack – Decentralized Cloud TEEs',
+        },
       ],
     },
 
@@ -36,6 +48,6 @@ const sidebars = {
     { type: 'doc', id: 'future-directions' },
     { type: 'doc', id: 'contributors' },
   ],
-};
+}
 
-module.exports = sidebars;
+module.exports = sidebars

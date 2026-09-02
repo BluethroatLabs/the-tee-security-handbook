@@ -4,29 +4,25 @@
 // There are various equivalent ways to declare your Docusaurus config.
 // See: https://docusaurus.io/docs/api/docusaurus-config
 
-import {themes as prismThemes} from 'prism-react-renderer';
+import { themes as prismThemes } from 'prism-react-renderer'
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'TEE Security Handbook',
-  tagline: 'TEE Security HandbookA practical security guide for Trusted Execution Environments',
+  tagline:
+    'TEE Security HandbookA practical security guide for Trusted Execution Environments',
   favicon: 'img/logo.png',
 
-  future: {
-    v4: true, 
-  },
+  future: { v4: true },
 
   url: 'https://docs.bluethroatlabs.com',
   baseUrl: '/',
   // Even if you don't use internationalization, you can use this field to set
   // useful metadata like html lang. For example, if your site is Chinese, you
   // may want to replace "en" with "zh-Hans".
-  i18n: {
-    defaultLocale: 'en',
-    locales: ['en'],
-  },
+  i18n: { defaultLocale: 'en', locales: ['en'] },
 
   presets: [
     [
@@ -38,27 +34,20 @@ const config = {
           routeBasePath: '/',
         },
         blog: false,
-        theme: {
-          customCss: './src/css/custom.css',
-        },
+        theme: { customCss: './src/css/custom.css' },
       }),
     ],
   ],
 
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
-    
+
     ({
       image: 'img/bluethroatlabs-social-card.jpg',
-      colorMode: {
-        respectPrefersColorScheme: true,
-      },
+      colorMode: { respectPrefersColorScheme: true },
       navbar: {
         title: 'TEE Security Handbook',
-        logo: {
-          alt: 'Bluethroat Labs',
-          src: 'img/logo.png',
-        },
+        logo: { alt: 'Bluethroat Labs', src: 'img/logo.png' },
         items: [
           {
             href: 'https://bluethroatlabs.com',
@@ -66,7 +55,7 @@ const config = {
             position: 'right',
           },
         ],
-        },
+      },
       footer: {
         style: 'dark',
         links: [
@@ -79,11 +68,8 @@ const config = {
         ],
         copyright: `© ${new Date().getFullYear()} Bluethroat Labs`,
       },
-      prism: {
-        theme: prismThemes.github,
-        darkTheme: prismThemes.dracula,
-      },
+      prism: { theme: prismThemes.github, darkTheme: prismThemes.dracula },
     }),
-};
+}
 
-export default config;
+export default config

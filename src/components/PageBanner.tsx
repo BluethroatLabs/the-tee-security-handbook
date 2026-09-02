@@ -1,13 +1,18 @@
-import React from 'react';
+import React from 'react'
 
 type Props = {
-  title?: string;
-  subtitle?: string;
-  image?: string;
-  backgroundPosition?: string;
-};
+  title?: string
+  subtitle?: string
+  image?: string
+  backgroundPosition?: string
+}
 
-export default function PageBanner({ title, subtitle, image, backgroundPosition = 'center top' }: Props) {
+export default function PageBanner({
+  title,
+  subtitle,
+  image,
+  backgroundPosition = 'center top',
+}: Props) {
   return (
     <div
       style={{
@@ -26,10 +31,8 @@ export default function PageBanner({ title, subtitle, image, backgroundPosition 
     >
       {title && <h1 style={{ marginBottom: '0.5rem' }}>{title}</h1>}
       {subtitle && (
-        <p style={{ fontSize: '1.1rem', opacity: 0.9 }}>
-          {subtitle}
-        </p>
+        <p style={{ fontSize: '1.1rem', opacity: 0.9 }}>{subtitle}</p>
       )}
     </div>
-  );
+  )
 }
