@@ -1,0 +1,110 @@
+{
+  "repositoryUrl": "https://github.com/BluethroatLabs/the-tee-security-handbook",
+  "exclude": ["docs/09-contributors.mdx"],
+  "contributors": [
+    {
+      "name": "Rahul Saxena",
+      "emails": ["saxenism@bluethroatlabs.com", "rahulsaxena.pro@gmail.com"],
+      "avatar": "https://github.com/saxenism.png?size=192",
+      "tags": ["Maintainer", "TEE security"],
+      "about": "Maintainer at Bluethroat Labs and former zkSync security engineer.",
+      "initialContribution": {
+        "commits": 10,
+        "additions": 1110,
+        "deletions": 110,
+        "currentLines": 1000,
+        "lastContribution": "2026-09-02T17:40:53.615Z"
+      },
+      "hidden": false,
+      "hideStats": false,
+      "links": {
+        "email": "mailto:saxenism@bluethroatlabs.com",
+        "github": "https://github.com/saxenism",
+        "x": "https://x.com/saxenism",
+        "telegram": "https://t.me/saxenism"
+      }
+    },
+    {
+      "name": "Tanmay Goel",
+      "emails": ["0xbitcrusader@gmail.com"],
+      "avatar": "https://github.com/GuyPhy.png?size=192",
+      "tags": ["Contributor", "Engineering"],
+      "about": "Co-founder of Kokio and GMMS; engineer and former NVIDIA engineer.",
+      "initialContribution": {
+        "commits": 5,
+        "additions": 333,
+        "deletions": 33,
+        "currentLines": 300,
+        "lastContribution": "2026-08-12T17:40:53.615Z"
+      },
+      "hidden": false,
+      "hideStats": false,
+      "links": {
+        "email": "mailto:0xbitcrusader@gmail.com",
+        "github": "https://github.com/GuyPhy",
+        "x": "https://x.com/guyphy4",
+        "telegram": "https://t.me/guyphy4"
+      }
+    },
+    {
+      "name": "Abhimanyu Gupta",
+      "emails": ["abhimanyu.gupta@rubberduckypro.com"],
+      "tags": ["Contributor", "Security"],
+      "initialContribution": {
+        "commits": 10,
+        "additions": 430,
+        "deletions": 30,
+        "currentLines": 400,
+        "lastContribution": "2026-08-20T17:40:53.615Z"
+      },
+      "hidden": false,
+      "hideStats": false,
+      "links": {
+        "email": "mailto:abhimanyu.gupta@rubberduckypro.com",
+        "x": "https://x.com/hackerjedi666"
+      }
+    },
+    {
+      "name": "Krushang Kasundra",
+      "emails": ["kruzkasu223@gmail.com"],
+      "tags": ["Contributor", "Engineering"],
+      "initialContribution": {
+        "commits": 0,
+        "additions": 0,
+        "deletions": 0,
+        "currentLines": 0,
+        "lastContribution": null
+      },
+      "hidden": true,
+      "hideStats": true
+    },
+    {
+      "name": "Justin King-Lacroix",
+      "emails": ["JustinKingLacroix@gmail.com"],
+      "tags": ["Proofreader"],
+      "initialContribution": {
+        "commits": 0,
+        "additions": 0,
+        "deletions": 0,
+        "currentLines": 0,
+        "lastContribution": null
+      },
+      "hidden": false,
+      "hideStats": true
+    },
+    {
+      "name": "Shashank Agarwal",
+      "emails": ["ShashankAgarwal@gmail.com"],
+      "tags": ["Proofreader", "Contributor"],
+      "initialContribution": {
+        "commits": 0,
+        "additions": 0,
+        "deletions": 0,
+        "currentLines": 0,
+        "lastContribution": null
+      },
+      "hidden": false,
+      "hideStats": true
+    }
+  ]
+}

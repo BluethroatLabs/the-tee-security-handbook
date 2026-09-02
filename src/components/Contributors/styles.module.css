@@ -1,0 +1,375 @@
+.directory {
+  --ledger-line: color-mix(in oklch, currentColor 14%, transparent);
+  --ledger-muted: color-mix(in oklch, currentColor 62%, transparent);
+  --ledger-soft: color-mix(
+    in oklch,
+    var(--ifm-color-primary) 8%,
+    var(--ifm-background-color)
+  );
+  --ledger-raised: color-mix(
+    in oklch,
+    currentColor 3%,
+    var(--ifm-background-color)
+  );
+  margin-block: 1.5rem 4rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  align-items: end;
+  padding-block: 1rem 1.35rem;
+  border-bottom: 1px solid var(--ledger-line);
+}
+
+.header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.header > div > p {
+  max-width: 55ch;
+  margin: 0.65rem 0 0;
+  color: var(--ledger-muted);
+}
+
+.scope {
+  flex: 0 0 auto;
+  margin: 0;
+  color: var(--ledger-muted);
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.warning {
+  margin-top: 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid color-mix(in oklch, #d79524 45%, transparent);
+  border-radius: 0.55rem;
+  background: color-mix(in oklch, #d79524 10%, transparent);
+  font-size: 0.82rem;
+}
+
+.activePeople {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.activePerson {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--ledger-line);
+  border-radius: 0.9rem;
+  background: var(--ledger-raised);
+}
+
+.activePerson::after {
+  flex: 0 0 1.4rem;
+  content: '';
+}
+
+.personHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.avatar {
+  position: relative;
+  display: grid;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  place-items: center;
+  background: var(--ledger-soft);
+  color: var(--ifm-color-primary);
+  font-size: 1.4rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.identity,
+.profileIdentity {
+  min-width: 0;
+}
+
+.activePerson .identity {
+  padding: 1.25rem 1.4rem 0;
+}
+
+.identity h2,
+.profileIdentity h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.identity h2 {
+  font-size: 1.3rem;
+}
+
+.profileIdentity h3 {
+  font-size: 0.95rem;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tags li {
+  padding: 0.18rem 0.5rem;
+  border: 1px solid var(--ledger-line);
+  border-radius: 999px;
+  color: var(--ledger-muted);
+  font-size: 0.64rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.tags li:first-child {
+  border-color: color-mix(in oklch, var(--ifm-color-primary) 38%, transparent);
+  background: var(--ledger-soft);
+  color: var(--ifm-color-primary);
+}
+
+.about {
+  max-width: 56ch;
+  min-height: 3.2em;
+  margin: 1rem 1.4rem 0;
+  color: var(--ledger-muted);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.contribution {
+  margin: 1.25rem 1.4rem 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--ledger-line);
+}
+
+.shareLine {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+.shareLine p {
+  display: flex;
+  gap: 0.55rem;
+  align-items: baseline;
+  margin: 0;
+}
+
+.shareLine strong {
+  font-size: 1.65rem;
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.shareLine span {
+  color: var(--ledger-muted);
+  font-size: 0.68rem;
+}
+
+.track {
+  height: 0.3rem;
+  margin-top: 0.7rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--ledger-line);
+}
+
+.track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ifm-color-primary);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+}
+
+.stats dt {
+  color: var(--ledger-muted);
+  font-size: 0.61rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.stats dd {
+  margin: 0.18rem 0 0;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+}
+
+.added {
+  color: oklch(62% 0.15 152deg);
+}
+
+.removed {
+  color: oklch(62% 0.16 24deg);
+}
+
+.lastActive {
+  margin: 0.75rem 0 0;
+  color: var(--ledger-muted);
+  font-size: 0.68rem;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: auto;
+  padding-top: 1.15rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.activePerson > .links {
+  padding: 1.15rem 1.4rem 0;
+}
+
+.links a {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+}
+
+.support {
+  margin-top: clamp(2.5rem, 6vw, 4rem);
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--ledger-line);
+}
+
+.support > header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  letter-spacing: -0.025em;
+}
+
+.support > header p {
+  margin: 0.45rem 0 0;
+  color: var(--ledger-muted);
+  font-size: 0.78rem;
+}
+
+.profilePeople {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profilePerson {
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  border: 1px solid var(--ledger-line);
+  border-radius: 0.9rem;
+  background: var(--ledger-raised);
+}
+
+.profileIdentity {
+  display: flex;
+  min-height: 10rem;
+  flex-direction: column;
+  padding: 1.2rem 1.3rem 1.3rem;
+}
+
+.profilePerson .links {
+  padding-top: 1rem;
+  font-size: 0.66rem;
+}
+
+.profileAbout {
+  margin: 0.85rem 0 0;
+  color: var(--ledger-muted);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.methodology {
+  margin-top: 2.5rem;
+  border-block: 1px solid var(--ledger-line);
+}
+
+.methodology summary {
+  padding: 1rem 0;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.methodology summary::marker {
+  color: var(--ifm-color-primary);
+}
+
+.methodology div {
+  max-width: 68ch;
+  padding-bottom: 1.25rem;
+  color: var(--ledger-muted);
+  font-size: 0.78rem;
+}
+
+.methodology p {
+  margin-top: 0;
+}
+
+@media (max-width: 700px) {
+  .header,
+  .support {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+
+  .header {
+    flex-direction: column;
+  }
+
+  .scope {
+    white-space: normal;
+  }
+
+  .activePeople,
+  .profilePeople {
+    grid-template-columns: 1fr;
+  }
+}
+
+[data-theme='dark'] .added {
+  color: oklch(76% 0.14 152deg);
+}
+
+[data-theme='dark'] .removed {
+  color: oklch(72% 0.15 24deg);
+}
