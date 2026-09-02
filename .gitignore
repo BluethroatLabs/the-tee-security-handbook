@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Docusaurus
+.docusaurus/
+build/
+
+# OS
+.DS_Store
+.vercel
+.env*.local
