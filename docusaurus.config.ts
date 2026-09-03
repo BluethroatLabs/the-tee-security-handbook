@@ -6,7 +6,7 @@ const config = {
   title: 'TEE Security Handbook',
   tagline:
     'TEE Security HandbookA practical security guide for Trusted Execution Environments',
-  favicon: 'img/logo.png',
+  favicon: 'img/favicon.ico',
   future: { v4: true, faster: true },
   url: 'https://tee-security-handbook.bluethroatlabs.com',
   baseUrl: '/',
@@ -30,11 +30,17 @@ const config = {
     ],
   ],
   themeConfig: {
-    image: 'img/bluethroatlabs-social-card.jpg',
+    image: 'img/bluethroatlabs-social-card.png',
     colorMode: { respectPrefersColorScheme: true },
     navbar: {
       title: 'TEE Security Handbook',
-      logo: { alt: 'Bluethroat Labs', src: 'img/logo.png' },
+      logo: {
+        alt: 'Bluethroat Labs',
+        src: 'img/logo.svg',
+        srcDark: 'img/logo-dark.svg',
+        width: 24,
+        height: 24,
+      },
       items: [
         {
           type: 'docsVersionDropdown',
@@ -61,6 +67,11 @@ const config = {
           items: [
             { label: 'Email', to: 'mailto:saxenism@bluethroatlabs.com' },
             { label: 'X (Twitter)', to: 'https://x.com/bluethroat_labs' },
+            {
+              label: 'Linkedin',
+              to: 'https://www.linkedin.com/company/bluethroat-labs',
+            },
+            { label: 'Telegram', to: 'https://t.me/saxenism' },
           ],
         },
       ],
