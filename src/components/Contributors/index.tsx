@@ -184,17 +184,6 @@ export default function Contributors({ data }: { data: ContributorData }) {
 
   return (
     <section className={styles.directory} aria-labelledby="contributors-title">
-      <header className={styles.header}>
-        <div>
-          <h1 id="contributors-title">Contributors</h1>
-          <p>Research, engineering, and careful review behind the handbook.</p>
-        </div>
-        <p className={styles.scope}>
-          {data.contributors.length} people across {data.scope.documents}{' '}
-          chapters
-        </p>
-      </header>
-
       {data.isShallowRepository && (
         <aside className={styles.warning}>
           This build used a shallow clone. Older activity may be missing.

@@ -11,7 +11,7 @@
     currentColor 3%,
     var(--ifm-background-color)
   );
-  margin-block: 1.5rem 4rem;
+  margin: 2rem 0 0 0;
 }
 
 .header {
@@ -19,7 +19,7 @@
   justify-content: space-between;
   gap: 2rem;
   align-items: end;
-  padding-block: 1rem 1.35rem;
+  padding-block: 0 1.35rem;
   border-bottom: 1px solid var(--ledger-line);
 }
 
@@ -132,12 +132,12 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
-  margin: 0.55rem 0 0;
   padding: 0;
   list-style: none;
 }
 
 .tags li {
+  margin: 0.55rem 0 0;
   padding: 0.18rem 0.5rem;
   border: 1px solid var(--ledger-line);
   border-radius: 999px;

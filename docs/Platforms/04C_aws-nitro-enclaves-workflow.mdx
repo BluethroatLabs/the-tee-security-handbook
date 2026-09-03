@@ -1,0 +1,1251 @@
+---
+title: AWS Nitro Enclaves Workflow
+slug: /platforms/aws-nitro-workflow
+---
+
+import PageBanner from '@site/src/components/PageBanner';
+
+<PageBanner
+  title=""
+  image="/img/banners/PG-04C_aws_nitro_enclaves_workflow.png"
+/>
+
+
+# AWS Nitro Enclaves Workflow
+
+A practical, tutorial-style execution guide with step-by-step instructions for setting up and using AWS Nitro Enclaves.
+
+## Introduction
+
+This guide walks through the complete workflow for deploying applications on AWS Nitro Enclaves, from launching an EC2 instance to running an attested enclave with KMS integration.
+
+### Prerequisites
+
+- **AWS Account** with permissions to create EC2 instances, IAM roles, and KMS keys
+- **AWS CLI v2** installed and configured with appropriate credentials
+- **Docker** installed locally (for building enclave images)
+- **Basic familiarity** with Linux command line and containerization concepts
+
+### What You'll Learn
+
+By the end of this guide, you will be able to:
+
+- Launch and configure an enclave-enabled EC2 instance
+- Build Docker applications into Enclave Image Files (EIF)
+- Run enclaves and communicate with them via vsock
+- Generate and verify attestation documents
+- Integrate with AWS KMS using attestation-based policies
+- Debug enclave applications during development
+
+### Scope
+
+This guide covers the general workflow applicable to any enclave application. Code samples are provided in Rust. The patterns demonstrated can be adapted to your specific use case, whether that's secret management, confidential computing, or secure key operations.
+
+## AWS Environment Setup
+
+### Supported Instance Types
+
+Nitro Enclaves are available on most Nitro-based instance types with at least 4 vCPUs. The enclave runs as an isolated VM that consumes resources from the parent instance, so plan capacity accordingly.
+
+**Commonly used instance families:**
+
+| Family | Use Case | Notes |
+|--------|----------|-------|
+| M5, M6i | General purpose | Good balance of compute/memory |
+| C5, C6i | Compute-optimized | Higher CPU performance |
+| R5, R6i | Memory-optimized | Large in-memory workloads |
+| T3 | Burstable | Development/testing (limited) |
+
+**Minimum requirements:**
+
+- At least 4 vCPUs (enclave needs dedicated cores)
+- Sufficient memory for both parent and enclave
+- `EnclaveOptions` must be enabled at launch
+
+**Not supported:** Graviton (ARM), Mac, bare metal, or instances with fewer than 4 vCPUs.
+
+### Region Availability
+
+Nitro Enclaves are available in most AWS regions. Verify availability in your target region via the [AWS Regional Services List](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/).
+
+### IAM Configuration
+
+The parent EC2 instance needs an IAM role with permissions for enclave operations. If using KMS integration, the role also needs KMS permissions.
+
+**Create an IAM role for the EC2 instance:**
+
+```bash
+# Create the trust policy
+cat > trust-policy.json << 'EOF'
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+
+# Create the role
+aws iam create-role \
+  --role-name EnclaveInstanceRole \
+  --assume-role-policy-document file://trust-policy.json
+
+# Attach basic permissions (expand as needed for KMS)
+aws iam attach-role-policy \
+  --role-name EnclaveInstanceRole \
+  --policy-arn arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+# Create instance profile
+aws iam create-instance-profile \
+  --instance-profile-name EnclaveInstanceProfile
+
+aws iam add-role-to-instance-profile \
+  --instance-profile-name EnclaveInstanceProfile \
+  --role-name EnclaveInstanceRole
+```
+
+### Security Group Configuration
+
+Enclaves have no external network access by design—they communicate only with the parent instance via vsock. The security group applies to the parent instance only.
+
+```bash
+# Create security group (adjust VPC ID for your environment)
+aws ec2 create-security-group \
+  --group-name enclave-parent-sg \
+  --description "Security group for Nitro Enclave parent instance" \
+  --vpc-id vpc-xxxxxxxxx
+
+# Allow SSH access (restrict source IP in production)
+aws ec2 authorize-security-group-ingress \
+  --group-name enclave-parent-sg \
+  --protocol tcp \
+  --port 22 \
+  --cidr 0.0.0.0/0
+```
+
+### Launching an Enclave-Enabled Instance
+
+**Key parameter:** `--enclave-options Enabled=true` must be set at launch time. This cannot be changed after instance creation.
+
+```bash
+# Find the latest Amazon Linux 2023 AMI
+AMI_ID=$(aws ec2 describe-images \
+  --owners amazon \
+  --filters "Name=name,Values=al2023-ami-2023*-x86_64" \
+            "Name=state,Values=available" \
+  --query "Images | sort_by(@, &CreationDate) | [-1].ImageId" \
+  --output text)
+
+# Launch the instance
+aws ec2 run-instances \
+  --image-id $AMI_ID \
+  --instance-type m5.xlarge \
+  --key-name your-key-pair \
+  --security-group-ids sg-xxxxxxxxx \
+  --subnet-id subnet-xxxxxxxxx \
+  --iam-instance-profile Name=EnclaveInstanceProfile \
+  --enclave-options Enabled=true \
+  --block-device-mappings '[{"DeviceName":"/dev/xvda","Ebs":{"VolumeSize":30,"VolumeType":"gp3"}}]' \
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=enclave-dev}]'
+```
+
+**Verify enclave support after launch:**
+
+```bash
+# SSH into the instance, then run:
+aws ec2 describe-instances \
+  --instance-ids i-xxxxxxxxx \
+  --query "Reservations[].Instances[].EnclaveOptions"
+
+# Expected output:
+# [
+#     {
+#         "Enabled": true
+#     }
+# ]
+```
+
+If `Enabled` is `false` or missing, the instance was not launched with enclave support and must be terminated and relaunched with the correct options.
+
+## Installing Nitro CLI & SDK
+
+All commands in this section run on the EC2 parent instance (not your local machine).
+
+### Amazon Linux 2023 Installation
+
+```bash
+# Install the Nitro Enclaves CLI and tools
+sudo dnf install aws-nitro-enclaves-cli aws-nitro-enclaves-cli-devel -y
+
+# Add your user to the ne group (required to run enclave commands)
+sudo usermod -aG ne $USER
+
+# Add your user to the docker group (required to build EIFs)
+sudo usermod -aG docker $USER
+
+# Log out and back in for group changes to take effect
+exit
+# SSH back in
+```
+
+### Amazon Linux 2 Installation
+
+```bash
+# Install from amazon-linux-extras
+sudo amazon-linux-extras install aws-nitro-enclaves-cli -y
+sudo yum install aws-nitro-enclaves-cli-devel -y
+
+# Add user to required groups
+sudo usermod -aG ne $USER
+sudo usermod -aG docker $USER
+
+# Log out and back in
+exit
+```
+
+### Allocator Service Configuration
+
+The Nitro Enclaves allocator reserves CPU and memory for enclaves at boot time. Configure it before starting the service.
+
+```bash
+# Edit the allocator configuration
+sudo vi /etc/nitro_enclaves/allocator.yaml
+```
+
+**Default configuration:**
+
+```yaml
+---
+# Memory in MiB to reserve for enclaves
+memory_mib: 512
+
+# Number of CPUs to reserve for enclaves
+# Must be at least 2 (enclaves need full cores, not hyperthreads)
+cpu_count: 2
+```
+
+**Recommended settings by instance size:**
+
+| Instance Type | vCPUs | Enclave CPUs | Enclave Memory |
+|---------------|-------|--------------|----------------|
+| m5.xlarge | 4 | 2 | 2048 MiB |
+| m5.2xlarge | 8 | 4 | 8192 MiB |
+| m5.4xlarge | 16 | 8 | 16384 MiB |
+
+**Important:** The allocated resources are reserved exclusively for enclaves and unavailable to the parent instance. Leave enough resources for the parent OS and any proxy services.
+
+### Starting the Services
+
+```bash
+# Enable and start the allocator service
+sudo systemctl enable nitro-enclaves-allocator.service
+sudo systemctl start nitro-enclaves-allocator.service
+
+# Enable and start Docker (required for building EIFs)
+sudo systemctl enable docker
+sudo systemctl start docker
+```
+
+### Verifying Installation
+
+```bash
+# Check CLI version
+nitro-cli --version
+# Expected: Nitro CLI <version>
+
+# Check allocator service status
+sudo systemctl status nitro-enclaves-allocator.service
+# Should show "active (running)"
+
+# Verify allocated resources
+cat /etc/nitro_enclaves/allocator.yaml
+
+# Check that the Nitro Enclaves device exists
+ls -la /dev/nitro_enclaves
+# Expected: crw------- 1 root ne ... /dev/nitro_enclaves
+
+# Verify your user can access it
+id | grep ne
+# Should show the "ne" group in your groups
+```
+
+If `nitro-cli` commands fail with permission errors, ensure you've logged out and back in after adding yourself to the `ne` group.
+
+## Building Your First Enclave
+
+Enclave applications are packaged as Docker images, then converted to Enclave Image Files (EIF) using `nitro-cli build-enclave`.
+
+### Creating a Simple Enclave Application
+
+Create a minimal Rust application that will run inside the enclave. This example listens on vsock and echoes back any received messages.
+
+**Project structure:**
+
+```
+enclave-app/
+├── Cargo.toml
+├── src/
+│   └── main.rs
+└── Dockerfile
+```
+
+**Cargo.toml:**
+
+```toml
+[package]
+name = "enclave-app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+vsock = "0.4"
+```
+
+**src/main.rs:**
+
+```rust
+use std::io::{Read, Write};
+use vsock::{VsockListener, VMADDR_CID_ANY};
+
+const VSOCK_PORT: u32 = 5000;
+
+fn main() {
+    println!("Enclave application starting...");
+
+    // Bind to vsock - VMADDR_CID_ANY accepts connections from any CID
+    let listener = VsockListener::bind_with_cid_port(VMADDR_CID_ANY, VSOCK_PORT)
+        .expect("Failed to bind vsock listener");
+
+    println!("Listening on vsock port {}", VSOCK_PORT);
+
+    for stream in listener.incoming() {
+        match stream {
+            Ok(mut conn) => {
+                let mut buf = [0u8; 1024];
+                match conn.read(&mut buf) {
+                    Ok(n) if n > 0 => {
+                        println!("Received {} bytes", n);
+                        // Echo back the received data
+                        let _ = conn.write_all(&buf[..n]);
+                    }
+                    _ => {}
+                }
+            }
+            Err(e) => eprintln!("Connection error: {}", e),
+        }
+    }
+}
+```
+
+**Dockerfile:**
+
+```dockerfile
+# Build stage
+FROM rust:1.75-slim as builder
+
+WORKDIR /app
+COPY Cargo.toml ./
+COPY src ./src
+
+RUN cargo build --release
+
+# Runtime stage - minimal image
+FROM amazonlinux:2023-minimal
+
+COPY --from=builder /app/target/release/enclave-app /usr/local/bin/
+
+# Enclaves run the CMD as PID 1
+CMD ["/usr/local/bin/enclave-app"]
+```
+
+### Building the Docker Image
+
+```bash
+# Build the Docker image
+docker build -t enclave-app:latest .
+
+# Verify the image exists
+docker images | grep enclave-app
+```
+
+### Converting to EIF
+
+The `nitro-cli build-enclave` command packages the Docker image into an Enclave Image File.
+
+```bash
+nitro-cli build-enclave \
+  --docker-uri enclave-app:latest \
+  --output-file enclave-app.eif
+```
+
+**Expected output:**
+
+```
+Start building the Enclave Image...
+Enclave Image successfully created.
+{
+  "Measurements": {
+    "HashAlgorithm": "Sha384 { ... }",
+    "PCR0": "abc123...",
+    "PCR1": "def456...",
+    "PCR2": "789ghi..."
+  }
+}
+```
+
+### Understanding PCR Values
+
+The build output includes Platform Configuration Register (PCR) measurements. These cryptographic hashes uniquely identify your enclave and are critical for attestation.
+
+| PCR | Contents | Use Case |
+|-----|----------|----------|
+| PCR0 | Hash of entire EIF | Verify exact enclave image |
+| PCR1 | Hash of kernel + boot ramdisk | Verify boot components |
+| PCR2 | Hash of application ramdisk | Verify application code |
+| PCR8 | Hash of signing certificate | Verify EIF publisher (if signed) |
+
+**Record these values.** You'll use PCR0 (and optionally PCR1/PCR2) when configuring KMS key policies to restrict access to specific enclave builds.
+
+```bash
+# Save PCR values for later use
+nitro-cli build-enclave \
+  --docker-uri enclave-app:latest \
+  --output-file enclave-app.eif 2>&1 | tee build-output.json
+```
+
+### Inspecting EIF Metadata
+
+Use `describe-eif` to examine an existing EIF file:
+
+```bash
+nitro-cli describe-eif --eif-path enclave-app.eif
+```
+
+**Output includes:**
+
+- EIF version and build metadata
+- PCR measurements
+- Memory and CPU requirements
+- Signing certificate info (if signed)
+
+**Important:** For untrusted EIFs, the values reported by `describe-eif` may not match what the hypervisor actually measures. Only trust PCR values from `describe-enclaves` on a running enclave, or from attestation documents.
+
+### Reproducible Builds
+
+For production deployments, PCR values must be reproducible so you can verify builds. Non-determinism can come from:
+
+- Timestamps embedded in binaries
+- Random build IDs
+- Dependency version drift
+- Layer ordering in Docker
+
+**Tips for reproducibility:**
+
+- Pin all dependency versions in Cargo.lock and Dockerfile
+- Use `SOURCE_DATE_EPOCH` for timestamp normalization
+- Build in a controlled environment (CI/CD)
+- Compare PCR values across multiple independent builds
+
+## Running Enclaves
+
+### Starting an Enclave
+
+```bash
+nitro-cli run-enclave \
+  --eif-path enclave-app.eif \
+  --cpu-count 2 \
+  --memory 2048
+```
+
+**Expected output:**
+
+```json
+{
+  "EnclaveName": "enclave-app",
+  "EnclaveID": "i-xxxxxxxxx-enc0123456789abcdef0",
+  "ProcessID": 12345,
+  "EnclaveCID": 16,
+  "NumberOfCPUs": 2,
+  "CPUIDs": [1, 3],
+  "MemoryMiB": 2048
+}
+```
+
+**Key flags:**
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--eif-path` | Yes | Path to the EIF file |
+| `--cpu-count` | Yes | Number of vCPUs to allocate (minimum 2) |
+| `--memory` | Yes | Memory in MiB (must not exceed allocator reservation) |
+| `--enclave-cid` | No | Specify CID manually (auto-assigned if omitted, starting at 16) |
+| `--debug-mode` | No | Enable console access (see Development & Debug Workflow) |
+
+**Note on CPU allocation:** Enclaves require full physical cores. On hyperthreaded instances, both sibling threads of a core are assigned together. If you request `--cpu-count 2`, you get one physical core (2 hyperthreads).
+
+### Checking Enclave Status
+
+```bash
+nitro-cli describe-enclaves
+```
+
+**Output:**
+
+```json
+[
+  {
+    "EnclaveName": "enclave-app",
+    "EnclaveID": "i-xxxxxxxxx-enc0123456789abcdef0",
+    "ProcessID": 12345,
+    "EnclaveCID": 16,
+    "NumberOfCPUs": 2,
+    "CPUIDs": [1, 3],
+    "MemoryMiB": 2048,
+    "State": "RUNNING",
+    "Flags": "NONE",
+    "Measurements": {
+      "HashAlgorithm": "Sha384 { ... }",
+      "PCR0": "abc123...",
+      "PCR1": "def456...",
+      "PCR2": "789ghi..."
+    }
+  }
+]
+```
+
+The `Measurements` block here reflects the values measured by the hypervisor at boot time. These are the authoritative PCR values — use them (not `describe-eif`) when configuring KMS policies.
+
+### Terminating an Enclave
+
+```bash
+# Terminate by enclave ID
+nitro-cli terminate-enclave --enclave-id i-xxxxxxxxx-enc0123456789abcdef0
+
+# Or terminate all running enclaves
+nitro-cli terminate-enclave --all
+```
+
+### Running Multiple Enclaves
+
+Multiple enclaves can run on a single parent instance as long as there are sufficient allocated resources. Each enclave receives a unique CID (16, 17, 18, etc.). The total CPU and memory across all enclaves cannot exceed the allocator reservation.
+
+```bash
+# First enclave
+nitro-cli run-enclave --eif-path app-a.eif --cpu-count 2 --memory 1024
+
+# Second enclave (if resources allow)
+nitro-cli run-enclave --eif-path app-b.eif --cpu-count 2 --memory 1024
+```
+
+## Development & Debug Workflow
+
+### Debug Mode Overview
+
+Debug mode enables console output from the enclave, allowing you to see `stdout`/`stderr` from your application. This is essential during development but introduces a security trade-off.
+
+**What debug mode changes:**
+
+- Console output is accessible from the parent instance
+- Attestation documents contain **all-zero PCR values** (this is how KMS and verifiers distinguish debug from production enclaves)
+
+**What debug mode does NOT change:**
+
+- Memory isolation is still enforced
+- Attestation documents are still generated (but with zeroed PCRs)
+- vsock communication works identically
+
+### Running in Debug Mode
+
+```bash
+# Launch with debug mode enabled
+nitro-cli run-enclave \
+  --eif-path enclave-app.eif \
+  --cpu-count 2 \
+  --memory 2048 \
+  --debug-mode
+
+# Attach to the enclave console in a separate terminal
+nitro-cli console --enclave-id i-xxxxxxxxx-enc0123456789abcdef0
+```
+
+The console shows all output written to `stdout` and `stderr` by the enclave application. Press `Ctrl+C` to detach from the console (the enclave keeps running).
+
+### Development Iteration Cycle
+
+A typical edit-build-run cycle:
+
+```bash
+# 1. Make code changes locally
+# 2. Rebuild Docker image
+docker build -t enclave-app:latest .
+
+# 3. Rebuild EIF
+nitro-cli build-enclave \
+  --docker-uri enclave-app:latest \
+  --output-file enclave-app.eif
+
+# 4. Terminate existing enclave
+nitro-cli terminate-enclave --all
+
+# 5. Run new enclave in debug mode
+nitro-cli run-enclave \
+  --eif-path enclave-app.eif \
+  --cpu-count 2 \
+  --memory 2048 \
+  --debug-mode
+
+# 6. Attach console to see output
+nitro-cli console --enclave-id $(nitro-cli describe-enclaves | jq -r '.[0].EnclaveID')
+```
+
+### Debug Mode Security Implications
+
+**Never use debug mode in production.** In debug mode, all PCR values in the attestation document are set to zeros. This means any KMS key policy that requires specific PCR values will automatically reject requests from debug enclaves. If your KMS policy or remote verifier does not check PCR values, debug enclaves could impersonate production — always enforce PCR checks.
+
+An attacker with parent access can read the console output in debug mode, potentially exposing:
+
+- Log messages containing sensitive state
+- Error messages with internal details
+- Any data written to `stdout`/`stderr`
+
+Before deploying to production, always verify your enclave runs correctly without `--debug-mode` by testing the full workflow (vsock communication, attestation, KMS access) in production mode.
+
+## Vsock Communication
+
+### Understanding Vsock
+
+Vsock (Virtual Socket) is the only communication channel between the parent instance and the enclave. It behaves like a standard socket interface but uses Context IDs (CIDs) instead of IP addresses.
+
+**Reserved CIDs:**
+
+| CID | Assignment |
+|-----|------------|
+| 0 | Hypervisor (reserved) |
+| 1 | Reserved |
+| 2 | Host (reserved) |
+| 3 | Parent EC2 instance |
+| 16+ | Enclaves (auto-assigned) |
+
+Communication is bidirectional — the parent can connect to the enclave, and the enclave can connect to the parent. Both sides need to know each other's CID and agree on a port number.
+
+### Enclave-Side Listener (Rust)
+
+The enclave listens for connections from the parent:
+
+```rust
+use std::io::{Read, Write};
+use std::net::Shutdown;
+use vsock::{VsockListener, VMADDR_CID_ANY};
+
+const LISTEN_PORT: u32 = 5000;
+const MAX_MSG_SIZE: usize = 1024 * 1024; // 1 MiB
+
+fn main() -> std::io::Result<()> {
+    let listener = VsockListener::bind_with_cid_port(VMADDR_CID_ANY, LISTEN_PORT)?;
+    println!("Enclave listening on vsock port {}", LISTEN_PORT);
+
+    for stream in listener.incoming() {
+        match stream {
+            Ok(mut conn) => {
+                // Read length-prefixed message
+                let mut len_buf = [0u8; 4];
+                if conn.read_exact(&mut len_buf).is_err() {
+                    continue;
+                }
+                let msg_len = u32::from_be_bytes(len_buf) as usize;
+
+                if msg_len > MAX_MSG_SIZE {
+                    eprintln!("Message too large: {} bytes", msg_len);
+                    let _ = conn.shutdown(Shutdown::Both);
+                    continue;
+                }
+
+                let mut msg_buf = vec![0u8; msg_len];
+                if conn.read_exact(&mut msg_buf).is_err() {
+                    continue;
+                }
+
+                // Process and respond
+                let response = process_request(&msg_buf);
+
+                let resp_len = (response.len() as u32).to_be_bytes();
+                let _ = conn.write_all(&resp_len);
+                let _ = conn.write_all(&response);
+            }
+            Err(e) => eprintln!("Accept error: {}", e),
+        }
+    }
+    Ok(())
+}
+
+fn process_request(data: &[u8]) -> Vec<u8> {
+    // Your application logic here
+    data.to_vec() // Echo for demonstration
+}
+```
+
+### Parent-Side Client (Rust)
+
+The parent instance connects to the enclave:
+
+```rust
+use std::io::{Read, Write};
+use vsock::VsockStream;
+
+const ENCLAVE_CID: u32 = 16; // From run-enclave output
+const ENCLAVE_PORT: u32 = 5000;
+
+fn send_to_enclave(data: &[u8]) -> std::io::Result<Vec<u8>> {
+    let mut stream = VsockStream::connect_with_cid_port(ENCLAVE_CID, ENCLAVE_PORT)?;
+
+    // Send length-prefixed message
+    let len_bytes = (data.len() as u32).to_be_bytes();
+    stream.write_all(&len_bytes)?;
+    stream.write_all(data)?;
+
+    // Read length-prefixed response
+    let mut len_buf = [0u8; 4];
+    stream.read_exact(&mut len_buf)?;
+    let resp_len = u32::from_be_bytes(len_buf) as usize;
+
+    let mut resp_buf = vec![0u8; resp_len];
+    stream.read_exact(&mut resp_buf)?;
+
+    Ok(resp_buf)
+}
+
+fn main() {
+    let request = b"Hello from parent";
+    match send_to_enclave(request) {
+        Ok(response) => println!("Response: {:?}", String::from_utf8_lossy(&response)),
+        Err(e) => eprintln!("Error: {}", e),
+    }
+}
+```
+
+### Proxy Patterns for External Connectivity
+
+Enclaves cannot access the network directly. The parent must act as a proxy for any external communication (API calls, KMS requests, database queries).
+
+```
+External Service <--HTTPS--> Parent Proxy <--vsock--> Enclave
+```
+
+A common pattern is to run a TCP-to-vsock proxy on the parent that forwards specific traffic:
+
+```bash
+# Using the AWS-provided vsock proxy for KMS
+# (installed with aws-nitro-enclaves-cli)
+vsock-proxy 8000 kms.us-east-1.amazonaws.com 443 &
+```
+
+The enclave then connects to the proxy via vsock on the configured port, and the proxy forwards the traffic to the external endpoint over TCP/TLS.
+
+**Security note:** The parent proxy can inspect, modify, or drop traffic. The enclave must use end-to-end encryption and verify server certificates independently for any communication where the parent is untrusted. For KMS, the attestation-based flow provides this — KMS encrypts the response to the enclave's public key, making it unreadable to the parent.
+
+## Attestation Workflow
+
+### What Attestation Provides
+
+Attestation allows a remote party (or the enclave itself) to obtain a cryptographically signed document proving:
+
+- The exact code running inside the enclave (via PCR measurements)
+- That the enclave is a genuine Nitro Enclave (via AWS certificate chain)
+- Freshness of the proof (via a caller-supplied nonce)
+
+### Requesting an Attestation Document
+
+Inside the enclave, attestation documents are obtained from the Nitro Secure Module (NSM) device at `/dev/nsm`.
+
+```rust
+use aws_nitro_enclaves_nsm_api::api::Request;
+use aws_nitro_enclaves_nsm_api::driver;
+use serde_bytes::ByteBuf;
+
+fn get_attestation_document(
+    nonce: Option<&[u8]>,
+    user_data: Option<&[u8]>,
+    public_key: Option<&[u8]>,
+) -> Result<Vec<u8>, String> {
+    // Open connection to NSM device
+    let nsm_fd = driver::nsm_init();
+    if nsm_fd < 0 {
+        return Err("Failed to open NSM device".into());
+    }
+
+    // Build the attestation request
+    let request = Request::Attestation {
+        nonce: nonce.map(|n| ByteBuf::from(n.to_vec())),
+        user_data: user_data.map(|d| ByteBuf::from(d.to_vec())),
+        public_key: public_key.map(|k| ByteBuf::from(k.to_vec())),
+    };
+
+    // Send request to NSM
+    let response = driver::nsm_process_request(nsm_fd, request);
+    driver::nsm_exit(nsm_fd);
+
+    match response {
+        aws_nitro_enclaves_nsm_api::api::Response::Attestation { document } => {
+            Ok(document)
+        }
+        _ => Err("Unexpected NSM response".into()),
+    }
+}
+```
+
+**Key parameters:**
+
+| Field | Max Size | Purpose |
+|-------|----------|---------|
+| `nonce` | 512 bytes | Challenge value from verifier (prevents replay) |
+| `user_data` | 512 bytes | Application-specific data to bind to attestation |
+| `public_key` | 1024 bytes | Enclave's public key (used by KMS for encryption) |
+
+### Attestation Document Structure
+
+The returned document is a COSE_Sign1 structure (CBOR-encoded) containing:
+
+```
+COSE_Sign1 {
+    protected: { algorithm: ES384 },
+    payload: {
+        module_id:   "i-xxxxxxxxx-encXXXXXX",
+        timestamp:   1234567890123,       // Unix ms
+        digest:      "SHA384",
+        pcrs: {
+            0: <48 bytes>,                // EIF image hash
+            1: <48 bytes>,                // Kernel + boot
+            2: <48 bytes>,                // Application
+            ...
+        },
+        certificate: <DER bytes>,         // Signing cert
+        cabundle:    [<DER bytes>, ...],   // Chain to root
+        nonce:       <bytes>,             // Echoed nonce
+        user_data:   <bytes>,             // Echoed user_data
+        public_key:  <bytes>,             // Echoed public_key
+    },
+    signature: <bytes>                    // ES384 signature
+}
+```
+
+### Verifying Attestation
+
+Verification should be performed by the relying party (e.g., a remote server, or the enclave itself when verifying a peer). The verification steps are:
+
+```rust
+// Pseudocode — use a COSE/CBOR library for actual implementation
+
+fn verify_attestation(
+    raw_document: &[u8],
+    expected_pcrs: &HashMap<usize, Vec<u8>>,
+    expected_nonce: &[u8],
+    max_age_ms: u64,
+) -> Result<AttestationDoc, VerifyError> {
+    // 1. Parse COSE_Sign1 envelope
+    let cose = parse_cose_sign1(raw_document)?;
+    let doc = parse_cbor_payload(&cose.payload)?;
+
+    // 2. Verify certificate chain back to AWS Nitro root CA
+    let root_cert = load_aws_nitro_root_cert();
+    verify_certificate_chain(&doc.cabundle, &doc.certificate, &root_cert)?;
+
+    // 3. Verify COSE signature using the signing certificate's public key
+    let signing_key = extract_public_key(&doc.certificate)?;
+    verify_cose_signature(&cose, &signing_key)?;
+
+    // 4. Check PCR values match expected measurements
+    for (index, expected) in expected_pcrs {
+        let actual = doc.pcrs.get(index)
+            .ok_or(VerifyError::MissingPcr(*index))?;
+        if actual != expected {
+            return Err(VerifyError::PcrMismatch(*index));
+        }
+    }
+
+    // 5. Verify nonce matches (prevents replay)
+    if doc.nonce.as_deref() != Some(expected_nonce) {
+        return Err(VerifyError::NonceMismatch);
+    }
+
+    // 6. Check timestamp freshness
+    let now_ms = current_time_ms();
+    if now_ms - doc.timestamp > max_age_ms {
+        return Err(VerifyError::AttestationExpired);
+    }
+
+    Ok(doc)
+}
+```
+
+### Common Verification Mistakes
+
+| Mistake | Risk | Correct Approach |
+|---------|------|------------------|
+| Only checking PCR0 | Modified application code undetected | Verify PCR0, PCR1, and PCR2 |
+| Skipping nonce | Replay attacks | Always require and verify a fresh nonce |
+| Trusting `describe-eif` for PCR values | Parser divergence with hypervisor | Use PCRs from `describe-enclaves` or build output |
+| Not checking certificate chain | Forged attestation accepted | Verify full chain to AWS Nitro root CA |
+| Ignoring timestamp | Stale attestation reuse | Enforce a maximum age window |
+| Not checking debug mode flag | Debug enclave impersonates production | Reject attestations where debug mode is set |
+
+### AWS Nitro Root Certificate
+
+The trust anchor for attestation verification:
+
+- **Download:** https://aws-nitro-enclaves.amazonaws.com/AWS_NitroEnclaves_Root-G1.zip
+- **Best practice:** Bundle the root certificate with your verifier at build time and verify its hash, rather than fetching it at runtime
+
+## KMS Integration Basics
+
+### How KMS + Enclaves Work Together
+
+AWS KMS can enforce that only a specific enclave (identified by PCR values) is allowed to decrypt data. The flow works as follows:
+
+1. Enclave generates a key pair and requests an attestation document containing the public key
+2. Enclave sends the attestation document alongside a KMS `Decrypt` request (via the parent's vsock proxy)
+3. KMS verifies the attestation, checks PCR values against the key policy conditions
+4. KMS encrypts the response to the enclave's public key — the parent cannot read it
+5. Enclave decrypts the response with its private key
+
+### Creating a KMS Key with Enclave Policy
+
+```bash
+# Create a KMS key
+KEY_ID=$(aws kms create-key \
+  --description "Enclave-protected key" \
+  --query 'KeyMetadata.KeyId' \
+  --output text)
+
+echo "Key ID: $KEY_ID"
+```
+
+**Apply a key policy that restricts decryption to a specific enclave:**
+
+```bash
+cat > key-policy.json << 'EOF'
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowAdminAccess",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::ACCOUNT_ID:root"
+      },
+      "Action": "kms:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowEnclaveDecrypt",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::ACCOUNT_ID:role/EnclaveInstanceRole"
+      },
+      "Action": "kms:Decrypt",
+      "Resource": "*",
+      "Condition": {
+        "StringEqualsIgnoreCase": {
+          "kms:RecipientAttestation:PCR0": "EXPECTED_PCR0_VALUE",
+          "kms:RecipientAttestation:PCR1": "EXPECTED_PCR1_VALUE",
+          "kms:RecipientAttestation:PCR2": "EXPECTED_PCR2_VALUE"
+        }
+      }
+    }
+  ]
+}
+EOF
+
+aws kms put-key-policy \
+  --key-id $KEY_ID \
+  --policy-name default \
+  --policy "$(cat key-policy.json)"
+```
+
+**Available condition keys:**
+
+| Condition Key | Matches |
+|---------------|---------|
+| `kms:RecipientAttestation:ImageSha384` | PCR0 (alias — same value) |
+| `kms:RecipientAttestation:PCR0` | Enclave image hash |
+| `kms:RecipientAttestation:PCR1` | Kernel + boot hash |
+| `kms:RecipientAttestation:PCR2` | Application hash |
+| `kms:RecipientAttestation:PCR3` | IAM role hash |
+| `kms:RecipientAttestation:PCR4` | Instance ID hash |
+| `kms:RecipientAttestation:PCR8` | Signing certificate hash |
+
+**Note:** `ImageSha384` and `PCR0` refer to the same value. Use either one, not both.
+
+Replace `EXPECTED_PCR0_VALUE` etc. with the actual hex values from your `nitro-cli build-enclave` output.
+
+### Encrypting Data for the Enclave
+
+From any machine with access to the KMS key, encrypt data that only the enclave will be able to decrypt:
+
+```bash
+# Encrypt a secret
+aws kms encrypt \
+  --key-id $KEY_ID \
+  --plaintext fileb://secret.txt \
+  --output text \
+  --query CiphertextBlob > encrypted-secret.b64
+```
+
+### KMS Proxy Setup
+
+The enclave needs a vsock proxy on the parent to reach KMS. The `vsock-proxy` tool ships with `aws-nitro-enclaves-cli`.
+
+```bash
+# Start the KMS vsock proxy on the parent instance
+# This listens on vsock port 8000 and forwards to KMS
+vsock-proxy 8000 kms.us-east-1.amazonaws.com 443 &
+
+# Verify the proxy is running
+ps aux | grep vsock-proxy
+```
+
+The proxy only allows connections to the specified endpoint. Adjust the KMS endpoint to match your region.
+
+### Decrypting Inside the Enclave (Rust)
+
+```rust
+use aws_nitro_enclaves_nsm_api::api::Request;
+use aws_nitro_enclaves_nsm_api::driver;
+use serde_bytes::ByteBuf;
+
+fn decrypt_with_kms(ciphertext: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    // 1. Generate an ephemeral RSA key pair inside the enclave
+    let (public_key_der, private_key) = generate_rsa_keypair()?;
+
+    // 2. Get attestation document with the public key embedded
+    let nsm_fd = driver::nsm_init();
+    let request = Request::Attestation {
+        nonce: None,
+        user_data: None,
+        public_key: Some(ByteBuf::from(public_key_der.clone())),
+    };
+    let response = driver::nsm_process_request(nsm_fd, request);
+    driver::nsm_exit(nsm_fd);
+
+    let attestation_doc = match response {
+        aws_nitro_enclaves_nsm_api::api::Response::Attestation { document } => document,
+        _ => return Err("Failed to get attestation".into()),
+    };
+
+    // 3. Call KMS Decrypt via vsock proxy
+    //    The request includes the attestation document as the "Recipient" field
+    //    KMS will re-encrypt the plaintext to the enclave's public key
+    let kms_response = call_kms_decrypt_via_vsock(
+        ciphertext,
+        &attestation_doc,
+    )?;
+
+    // 4. Decrypt the KMS response with the enclave's private key
+    //    KMS encrypted the data key to our RSA public key
+    let plaintext = rsa_decrypt(&private_key, &kms_response.ciphertext_for_recipient)?;
+
+    Ok(plaintext)
+}
+```
+
+**Note:** This is a simplified illustration. In practice, you'd use the AWS SDK with a custom HTTP client that routes through vsock, or implement the KMS API request signing and HTTP calls manually.
+
+## Production Readiness Checklist
+
+Before deploying an enclave to production, verify every item on this list.
+
+### Disable Debug Mode
+
+Run the enclave without the `--debug-mode` flag. Verify by checking `describe-enclaves`:
+
+```bash
+nitro-cli describe-enclaves | jq '.[0].Flags'
+# Expected: "NONE"
+# If debug: "DEBUG_MODE"
+```
+
+### Verify PCR Values
+
+Compare the PCR values from `describe-enclaves` against your expected build output:
+
+```bash
+# Get running enclave PCRs
+nitro-cli describe-enclaves | jq '.[0].Measurements'
+
+# Compare against build-time values
+# These MUST match exactly
+```
+
+If PCR values don't match your build output, the running enclave is not the image you built. Investigate immediately.
+
+### Entropy Source Verification
+
+Add this check to your enclave application's startup routine:
+
+```rust
+fn verify_entropy_source() {
+    let rng_source = std::fs::read_to_string(
+        "/sys/devices/virtual/misc/hw_random/rng_current"
+    ).expect("Failed to read RNG source");
+
+    if rng_source.trim() != "nsm-hwrng" {
+        panic!("Invalid RNG source: expected 'nsm-hwrng', got '{}'", rng_source.trim());
+    }
+}
+```
+
+The NSM hardware random number generator is the only trusted entropy source inside an enclave. If this check fails, all cryptographic operations are compromised.
+
+### Clock Source Verification
+
+```rust
+fn verify_clock_source() {
+    let clock_source = std::fs::read_to_string(
+        "/sys/devices/system/clocksource/clocksource0/current_clocksource"
+    ).expect("Failed to read clock source");
+
+    if clock_source.trim() != "kvm-clock" {
+        panic!("Invalid clock source: expected 'kvm-clock', got '{}'", clock_source.trim());
+    }
+}
+```
+
+Without `kvm-clock`, the enclave may boot with an arbitrary date (often ~Nov 30, 1999), which breaks TLS certificate validation, token expiry, and any time-dependent logic.
+
+### Resource Sizing
+
+Ensure the enclave has enough resources for production load:
+
+| Consideration | Recommendation |
+|---------------|----------------|
+| Memory | Allocate at least 2x the typical working set |
+| CPUs | Minimum 2; increase for concurrent workloads |
+| Parent headroom | Leave at least 2 vCPUs and 2 GiB for the parent OS and proxies |
+| Connection limits | Set explicit caps in the enclave to prevent resource exhaustion |
+
+### Additional Checks
+
+- **KMS key policy** uses exact PCR values (PCR0 + PCR1 + PCR2), not wildcards
+- **vsock handlers** have read/write timeouts and message size limits
+- **Logging** does not output secrets, keys, or user data from the enclave
+- **Error messages** returned to the parent are generic (no internal state leakage)
+- **Dependencies** are pinned and the EIF build is reproducible
+
+## Troubleshooting Common Issues
+
+### "Could not open /dev/nitro_enclaves"
+
+**Cause:** The user is not in the `ne` group, or the allocator service is not running.
+
+```bash
+# Check group membership
+id | grep ne
+
+# If missing, add and re-login
+sudo usermod -aG ne $USER
+exit
+# SSH back in
+
+# Check allocator service
+sudo systemctl status nitro-enclaves-allocator.service
+
+# If not running
+sudo systemctl start nitro-enclaves-allocator.service
+```
+
+### "Enclave boot failed" / "Insufficient resources"
+
+**Cause:** The enclave is requesting more CPU or memory than the allocator has reserved.
+
+```bash
+# Check what's allocated
+cat /etc/nitro_enclaves/allocator.yaml
+
+# Check what's currently in use
+nitro-cli describe-enclaves
+```
+
+**Fix:** Either increase the allocator reservation (requires restarting the allocator service) or reduce the enclave's `--cpu-count` / `--memory` flags.
+
+```bash
+# Update allocator config, then restart
+sudo vi /etc/nitro_enclaves/allocator.yaml
+sudo systemctl restart nitro-enclaves-allocator.service
+```
+
+### Vsock Connection Refused
+
+**Cause:** The enclave is not listening on the expected port, the CID is wrong, or the enclave hasn't finished booting.
+
+```bash
+# Verify enclave is running and note the CID
+nitro-cli describe-enclaves | jq '.[0] | {State, EnclaveCID}'
+```
+
+**Common fixes:**
+
+- Ensure the parent client is connecting to the correct CID (from `describe-enclaves`)
+- Ensure the enclave application has started and is listening (use debug mode to check)
+- Ensure the port numbers match between client and server
+
+### Attestation Verification Failures
+
+**Cause:** PCR mismatch, expired attestation, or certificate chain issue.
+
+| Symptom | Likely Cause | Fix |
+|---------|-------------|-----|
+| PCR0 mismatch | EIF was rebuilt (different binary) | Update expected PCRs in KMS policy |
+| Nonce mismatch | Stale or replayed attestation | Ensure fresh nonce per request |
+| Certificate chain invalid | Root cert not loaded or outdated | Re-download AWS Nitro root cert |
+| Timestamp too old | Clock skew or delayed verification | Check enclave clock source; increase age window |
+
+### KMS Decrypt Returns AccessDeniedException
+
+**Cause:** The KMS key policy conditions don't match the enclave's attestation.
+
+```bash
+# Verify the PCRs in your KMS policy match the running enclave
+nitro-cli describe-enclaves | jq '.[0].Measurements'
+
+# Common issues:
+# - PCR values changed after rebuilding the EIF
+# - Key policy uses PCR0 only, but should include PCR1/PCR2
+# - IAM role ARN in the policy doesn't match the instance's role
+# - Region mismatch between KMS key and vsock proxy endpoint
+```
+
+### Enclave Runs Out of Memory
+
+**Cause:** The application's memory usage exceeds what was allocated at launch.
+
+The enclave has no swap and no ability to request more memory. If it runs out, the process is killed by the OOM killer.
+
+**Fix:** Increase `--memory` on the `run-enclave` command and ensure the allocator has enough reserved. Profile your application's memory usage under load before setting production values.
+
+## Next Steps & References
+
+### AWS Documentation
+
+- [AWS Nitro Enclaves User Guide](https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave.html) — Official documentation covering setup, concepts, and API reference
+- [The Security Design of the AWS Nitro System](https://docs.aws.amazon.com/whitepapers/latest/security-design-of-aws-nitro-system/security-design-of-aws-nitro-system.html) — AWS whitepaper on Nitro architecture and security model
+- [AWS KMS Condition Keys for Nitro Enclaves](https://docs.aws.amazon.com/kms/latest/developerguide/policy-conditions.html#conditions-nitro-enclaves) — KMS key policy reference for attestation conditions
+
+### SDK and Tool Repositories
+
+- [aws-nitro-enclaves-cli](https://github.com/aws/aws-nitro-enclaves-cli) — CLI tool source code and allocator
+- [aws-nitro-enclaves-sdk-c](https://github.com/aws/aws-nitro-enclaves-sdk-c) — C SDK for NSM operations
+- [aws-nitro-enclaves-nsm-api](https://crates.io/crates/aws-nitro-enclaves-nsm-api) — Rust crate for NSM device interaction
+- [aws-nitro-enclaves-image-format](https://github.com/aws/aws-nitro-enclaves-image-format) — EIF format specification and tooling
+- [aws-nitro-enclaves-cose](https://github.com/aws/aws-nitro-enclaves-cose) — COSE signing/verification library
+- [aws-nitro-enclaves-sdk-bootstrap](https://github.com/aws/aws-nitro-enclaves-sdk-bootstrap) — Kernel, init, and NSM driver source
+
+### Security Research
+
+- [Trail of Bits: Notes on AWS Nitro Enclaves — Images and Attestation](https://blog.trailofbits.com/2024/02/16/a-few-notes-on-aws-nitro-enclaves-images-and-attestation/) — EIF format analysis and attestation pitfalls
+- [Trail of Bits: Notes on AWS Nitro Enclaves — Attack Surface](https://blog.trailofbits.com/2024/09/24/a-few-notes-on-aws-nitro-enclaves-attack-surface/) — Vsock security, randomness, side channels, and memory management
+- [AWS Nitro Root Certificate](https://aws-nitro-enclaves.amazonaws.com/AWS_NitroEnclaves_Root-G1.zip) — Trust anchor for attestation verification
