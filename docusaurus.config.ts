@@ -21,7 +21,8 @@ const config = {
           showLastUpdateAuthor: true,
           showLastUpdateTime: true,
           lastVersion: 'current',
-          versions: { current: { label: '0.3' } },
+          // update this when releasing a new version
+          versions: { current: { label: '0.2' } },
         },
         blog: false,
         theme: { customCss: './src/css/custom.css' },
@@ -41,8 +42,8 @@ const config = {
           dropdownActiveClassDisabled: true,
           label: 'Version',
           versions: {
-            current: { label: '0.3 (Latest)' },
-            0.2: { label: '0.2' },
+            // update this when releasing a new version
+            current: { label: '0.2 (Latest)' },
             0.1: { label: '0.1' },
           },
         },

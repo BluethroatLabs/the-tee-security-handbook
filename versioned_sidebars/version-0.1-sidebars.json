@@ -42,14 +42,19 @@
           "items": [
             {
               "type": "doc",
-              "id": "Platforms/04C_aws-nitro-threat-vectors-paranoid",
+              "id": "Platforms/04C_aws-nitro-enclaves-workflow",
+              "label": "AWS Nitro Enclaves Workflow"
+            },
+            {
+              "type": "doc",
+              "id": "Platforms/04D_aws-nitro-threat-vectors-paranoid",
               "label": "AWS Nitro Threat Vectors [PARANOID]"
             }
           ]
         },
         {
           "type": "doc",
-          "id": "Platforms/04D_dstack-decentralized-cloud-tees",
+          "id": "Platforms/04E_dstack-decentralized-cloud-tees",
           "label": "Dstack – Decentralized Cloud TEEs"
         }
       ]
