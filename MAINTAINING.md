@@ -163,6 +163,26 @@ Do not hand-copy these directories. Do not make editorial improvements inside
 the new snapshot during this step; fix `docs/`, validate it, and recreate the
 snapshot before it is merged if the release content was wrong.
 
+### Worked example: advance the handbook to 0.2
+
+Assume `docs/` contains the finished `0.1` handbook and there is no existing
+`0.1` snapshot. First validate the release, then pin the content that is about
+to become the old version:
+
+```sh
+yarn version:pin 0.1
+```
+
+This creates `versioned_docs/version-0.1/`,
+`versioned_sidebars/version-0.1-sidebars.json`, and a `versions.json` entry for
+`0.1`. The unversioned `docs/` directory remains the editable current handbook.
+Update its displayed version to `0.2` as described below.
+
+The argument to `version:pin` names the version being frozen, not the new
+current version. To freeze the current handbook as `0.2`, run
+`yarn version:pin 0.2` and then advance the current label to the next approved
+version, such as `0.3`.
+
 ### 3. Advance the current version configuration
 
 After pinning, update both version displays in `docusaurus.config.ts`:
@@ -175,17 +195,16 @@ After pinning, update both version displays in `docusaurus.config.ts`:
    and older releases. This is required because the repository supplies an
    explicit dropdown subset.
 
-For example, after pinning `0.2` and beginning `0.3`, the relevant labels should
-conceptually read:
+For the worked example above, after pinning `0.1` and beginning `0.2`, the
+relevant labels should read:
 
 ```ts
 // Docs plugin
-versions: { current: { label: '0.3' } }
+versions: { current: { label: '0.2' } }
 
 // Navbar dropdown
 versions: {
-  current: { label: '0.3 (Latest)' },
-  0.2: { label: '0.2' },
+  current: { label: '0.2 (Latest)' },
   0.1: { label: '0.1' },
 }
 ```
