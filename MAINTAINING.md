@@ -88,6 +88,9 @@ pull request names the older release and explains why it must change.
 
 When `contributors.config.json` changes:
 
+- Keep `includeUnlistedContributors` set to `false` unless the project
+  intentionally changes its publication policy. When it is `false`, only
+  profiles in the `contributors` array can appear on the contributors page.
 - Confirm the name, biography, roles, avatar, and public links are accurate and
   appropriate for publication.
 - Confirm `emails` contains the Git author email used by the contributor. Email
@@ -253,8 +256,8 @@ addition to the documentation checks:
   production build attempts to unshallow the clone so published statistics use
   complete history.
 - Treat `scripts/generate-contributors.mjs` as attribution logic: test identity
-  aliases, exclusions, hidden profiles, initial values, sorting, renames, binary
-  files, and empty history when changing it.
+  aliases, exclusions, configured-only filtering, hidden profiles, initial
+  values, sorting, renames, binary files, and empty history when changing it.
 - For React or CSS changes, review semantics, keyboard and screen-reader output,
   failure states (including unavailable avatars), responsive layouts, theme
   contrast, and performance.

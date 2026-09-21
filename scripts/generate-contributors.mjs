@@ -160,9 +160,13 @@ function initialValue(profile, field) {
   return Math.max(0, Number(profile?.initialContribution?.[field]) || 0)
 }
 
-const publishedEntries = [...stats.entries()].filter(
-  ([key]) => configuredProfile(key)?.hidden !== true
-)
+const publishedEntries = [...stats.entries()].filter(([key]) => {
+  const profile = configuredProfile(key)
+  return (
+    profile?.hidden !== true &&
+    (profile !== undefined || config.includeUnlistedContributors === true)
+  )
+})
 const totalCurrentLines = publishedEntries.reduce(
   (sum, [key, value]) =>
     sum +

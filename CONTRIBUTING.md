@@ -84,7 +84,10 @@ updates them.
 
 The contributors page combines Git history with profiles in
 `contributors.config.json`. If this is your first contribution and you want a
-profile displayed, add yourself to the `contributors` array in that file.
+profile displayed, add yourself to the `contributors` array in that file. The
+repository sets `includeUnlistedContributors` to `false`, so Git authors who do
+not have a configured profile are not published. Do not change this flag as
+part of adding or updating an individual profile.
 
 Use accurate, verifiable information:
 

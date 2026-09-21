@@ -1,6 +1,7 @@
 {
   "repositoryUrl": "https://github.com/BluethroatLabs/the-tee-security-handbook",
   "exclude": ["docs/09-contributors.mdx"],
+  "includeUnlistedContributors": false,
   "contributors": [
     {
       "name": "Rahul Saxena",
@@ -10,10 +11,10 @@
       "about": "Maintainer at Bluethroat Labs and former zkSync security engineer.",
       "initialContribution": {
         "commits": 10,
-        "additions": 1110,
-        "deletions": 110,
-        "currentLines": 1000,
-        "lastContribution": "2026-09-02T17:40:53.615Z"
+        "additions": 700,
+        "deletions": 0,
+        "currentLines": 700,
+        "lastContribution": ""
       },
       "hidden": false,
       "hideStats": false,
@@ -31,11 +32,11 @@
       "tags": ["Contributor", "Engineering"],
       "about": "Co-founder of Kokio and GMMS; engineer and former NVIDIA engineer.",
       "initialContribution": {
-        "commits": 5,
-        "additions": 333,
-        "deletions": 33,
-        "currentLines": 300,
-        "lastContribution": "2026-08-12T17:40:53.615Z"
+        "commits": 10,
+        "additions": 700,
+        "deletions": 0,
+        "currentLines": 700,
+        "lastContribution": ""
       },
       "hidden": false,
       "hideStats": false,
@@ -52,16 +53,37 @@
       "tags": ["Contributor", "Security"],
       "initialContribution": {
         "commits": 10,
-        "additions": 430,
-        "deletions": 30,
-        "currentLines": 400,
-        "lastContribution": "2026-08-20T17:40:53.615Z"
+        "additions": 700,
+        "deletions": 0,
+        "currentLines": 700,
+        "lastContribution": ""
       },
       "hidden": false,
       "hideStats": false,
       "links": {
         "email": "mailto:abhimanyu.gupta@rubberduckypro.com",
-        "x": "https://x.com/hackerjedi666"
+        "x": "https://x.com/hackerjedi666",
+        "github": "https://github.com/Hackerjedi666"
+      }
+    },
+    {
+      "name": "Chloe",
+      "emails": ["ledablack@proton.me"],
+      "tags": ["Contributor", "Security"],
+      "about": "Protocol Engineer @Hyperlink | Ex-Binance",
+      "initialContribution": {
+        "commits": 10,
+        "additions": 700,
+        "deletions": 0,
+        "currentLines": 700,
+        "lastContribution": ""
+      },
+      "hidden": false,
+      "hideStats": false,
+      "links": {
+        "email": "mailto:ledablack@proton.me",
+        "x": "https://x.com/thryec",
+        "github": "https://github.com/thryec"
       }
     },
     {
