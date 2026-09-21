@@ -6,7 +6,7 @@
     {
       "name": "Rahul Saxena",
       "emails": ["saxenism@bluethroatlabs.com", "rahulsaxena.pro@gmail.com"],
-      "avatar": "https://github.com/saxenism.png?size=192",
+      "avatar": "https://github.com/saxenism.png?size=512",
       "tags": ["Maintainer", "TEE security"],
       "about": "Maintainer at Bluethroat Labs and former zkSync security engineer.",
       "initialContribution": {
@@ -28,7 +28,7 @@
     {
       "name": "Tanmay Goel",
       "emails": ["0xbitcrusader@gmail.com"],
-      "avatar": "https://github.com/GuyPhy.png?size=192",
+      "avatar": "https://github.com/GuyPhy.png?size=512",
       "tags": ["Contributor", "Engineering"],
       "about": "Co-founder of Kokio and GMMS; engineer and former NVIDIA engineer.",
       "initialContribution": {
@@ -50,7 +50,9 @@
     {
       "name": "Abhimanyu Gupta",
       "emails": ["abhimanyu.gupta@rubberduckypro.com"],
+      "avatar": "https://github.com/Hackerjedi666.png?size=512",
       "tags": ["Contributor", "Security"],
+      "about": "Researcher and Malware Analyst",
       "initialContribution": {
         "commits": 10,
         "additions": 700,
@@ -62,13 +64,14 @@
       "hideStats": false,
       "links": {
         "email": "mailto:abhimanyu.gupta@rubberduckypro.com",
-        "x": "https://x.com/hackerjedi666",
-        "github": "https://github.com/Hackerjedi666"
+        "github": "https://github.com/Hackerjedi666",
+        "x": "https://x.com/hackerjedi666"
       }
     },
     {
       "name": "Chloe",
       "emails": ["ledablack@proton.me"],
+      "avatar": "https://pbs.twimg.com/profile_images/2092779657527713792/yA7P0OB9_400x400.jpg",
       "tags": ["Contributor", "Security"],
       "about": "Protocol Engineer @Hyperlink | Ex-Binance",
       "initialContribution": {
@@ -82,8 +85,8 @@
       "hideStats": false,
       "links": {
         "email": "mailto:ledablack@proton.me",
-        "x": "https://x.com/thryec",
-        "github": "https://github.com/thryec"
+        "github": "https://github.com/thryec",
+        "x": "https://x.com/thryec"
       }
     },
     {

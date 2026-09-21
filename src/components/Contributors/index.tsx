@@ -60,8 +60,8 @@ function Avatar({ contributor }: { contributor: Contributor }) {
           src={contributor.avatar}
           alt=""
           loading="lazy"
-          width="720"
-          height="360"
+          width="512"
+          height="512"
           onError={(event) => {
             event.currentTarget.hidden = true
           }}
@@ -95,8 +95,23 @@ function ContributorLinks({ contributor }: { contributor: Contributor }) {
   )
 }
 
-function ActiveContributor({ contributor }: { contributor: Contributor }) {
+const getGithubUsername = (githubLink = '') => {
+  if (!githubLink) return undefined
+  return githubLink?.split('/')?.at(-1)
+}
+
+function ActiveContributor({
+  contributor,
+  repoLink,
+}: {
+  contributor: Contributor
+  repoLink: string
+}) {
   const lastContribution = formatDate(contributor.lastContribution)
+  const githubUsername = getGithubUsername(contributor.links.github)
+  const contributionLink = githubUsername
+    ? repoLink + '/pulls?q=is%3Apr+author%3A' + githubUsername
+    : undefined
 
   return (
     <article className={styles.activePerson}>
@@ -114,9 +129,16 @@ function ActiveContributor({ contributor }: { contributor: Contributor }) {
         <div className={styles.shareLine}>
           <p>
             <strong>{contributor.currentLineShare}%</strong>
-            <span>current ownership</span>
+            {/* <span>current ownership</span> */}
           </p>
-          <span>{contributor.currentLines.toLocaleString()} lines</span>
+          {/* <span>{contributor.currentLines.toLocaleString()} lines</span> */}
+          {!!contributionLink && (
+            <span className={styles.links}>
+              <Link href={contributionLink} target="_blank">
+                See Contribution
+              </Link>
+            </span>
+          )}
         </div>
         <div
           className={styles.track}
@@ -192,7 +214,11 @@ export default function Contributors({ data }: { data: ContributorData }) {
 
       <div className={styles.activePeople}>
         {activeContributors.map((contributor) => (
-          <ActiveContributor key={contributor.name} contributor={contributor} />
+          <ActiveContributor
+            key={contributor.name}
+            contributor={contributor}
+            repoLink={data.repositoryUrl}
+          />
         ))}
       </div>
 

@@ -85,7 +85,7 @@
   position: relative;
   display: grid;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
   place-items: center;
   background: var(--ledger-soft);
@@ -249,7 +249,6 @@
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-top: auto;
-  padding-top: 1.15rem;
   font-size: 0.72rem;
   font-weight: 700;
 }
