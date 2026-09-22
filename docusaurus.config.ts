@@ -79,6 +79,7 @@ const config = {
       copyright: `© ${new Date().getFullYear()} Bluethroat Labs`,
     },
     prism: { theme: prismThemes.github, darkTheme: prismThemes.dracula },
+    plugins: [['vercel-analytics', { debug: false, mode: 'auto' }]],
   },
 } satisfies Config
 
