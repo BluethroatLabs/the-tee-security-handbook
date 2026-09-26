@@ -1,0 +1,135 @@
+{
+  "repositoryUrl": "https://github.com/BluethroatLabs/the-tee-security-handbook",
+  "exclude": ["docs/09-contributors.mdx"],
+  "includeUnlistedContributors": false,
+  "contributors": [
+    {
+      "name": "Rahul Saxena",
+      "emails": ["saxenism@bluethroatlabs.com", "rahulsaxena.pro@gmail.com"],
+      "avatar": "https://github.com/saxenism.png?size=512",
+      "tags": ["Maintainer", "TEE security"],
+      "about": "Maintainer at Bluethroat Labs and former zkSync security engineer.",
+      "initialContribution": {
+        "commits": 10,
+        "additions": 700,
+        "deletions": 0,
+        "currentLines": 700,
+        "lastContribution": ""
+      },
+      "hidden": false,
+      "hideStats": false,
+      "links": {
+        "email": "mailto:saxenism@bluethroatlabs.com",
+        "github": "https://github.com/saxenism",
+        "x": "https://x.com/saxenism",
+        "telegram": "https://t.me/saxenism"
+      }
+    },
+    {
+      "name": "Tanmay Goel",
+      "emails": ["0xbitcrusader@gmail.com"],
+      "avatar": "https://github.com/GuyPhy.png?size=512",
+      "tags": ["Contributor", "Engineering"],
+      "about": "Co-founder of Kokio and GMMS; engineer and former NVIDIA engineer.",
+      "initialContribution": {
+        "commits": 10,
+        "additions": 700,
+        "deletions": 0,
+        "currentLines": 700,
+        "lastContribution": ""
+      },
+      "hidden": false,
+      "hideStats": false,
+      "links": {
+        "email": "mailto:0xbitcrusader@gmail.com",
+        "github": "https://github.com/GuyPhy",
+        "x": "https://x.com/guyphy4",
+        "telegram": "https://t.me/guyphy4"
+      }
+    },
+    {
+      "name": "Abhimanyu Gupta",
+      "emails": ["abhimanyu.gupta@rubberduckypro.com"],
+      "avatar": "https://github.com/Hackerjedi666.png?size=512",
+      "tags": ["Contributor", "Security"],
+      "about": "Researcher and Malware Analyst",
+      "initialContribution": {
+        "commits": 10,
+        "additions": 700,
+        "deletions": 0,
+        "currentLines": 700,
+        "lastContribution": ""
+      },
+      "hidden": false,
+      "hideStats": false,
+      "links": {
+        "email": "mailto:abhimanyu.gupta@rubberduckypro.com",
+        "github": "https://github.com/Hackerjedi666",
+        "x": "https://x.com/hackerjedi666"
+      }
+    },
+    {
+      "name": "Chloe",
+      "emails": ["ledablack@proton.me"],
+      "avatar": "https://pbs.twimg.com/profile_images/2092779657527713792/yA7P0OB9_400x400.jpg",
+      "tags": ["Contributor", "Security"],
+      "about": "Protocol Engineer @Hyperlink | Ex-Binance",
+      "initialContribution": {
+        "commits": 10,
+        "additions": 700,
+        "deletions": 0,
+        "currentLines": 700,
+        "lastContribution": ""
+      },
+      "hidden": false,
+      "hideStats": false,
+      "links": {
+        "email": "mailto:ledablack@proton.me",
+        "github": "https://github.com/thryec",
+        "x": "https://x.com/thryec"
+      }
+    },
+    {
+      "name": "Krushang Kasundra",
+      "emails": ["kruzkasu223@gmail.com"],
+      "tags": ["Frontend Engineering"],
+      "initialContribution": {
+        "commits": 0,
+        "additions": 0,
+        "deletions": 0,
+        "currentLines": 0,
+        "lastContribution": null
+      },
+      "hidden": true,
+      "hideStats": true
+    },
+    {
+      "name": "Justin King-Lacroix",
+      "emails": ["JustinKingLacroix@gmail.com"],
+      "tags": ["Proofreader"],
+      "initialContribution": {
+        "commits": 0,
+        "additions": 0,
+        "deletions": 0,
+        "currentLines": 0,
+        "lastContribution": null
+      },
+      "hidden": false,
+      "hideStats": true
+    },
+    {
+      "name": "Shashank Agarwal",
+      "emails": ["ShashankAgarwal@gmail.com"],
+      "tags": ["Proofreader", "Contributor"],
+      "initialContribution": {
+        "commits": 0,
+        "additions": 0,
+        "deletions": 0,
+        "currentLines": 0,
+        "lastContribution": null
+      },
+      "hidden": false,
+      "hideStats": true
+    }
+  ]
+}

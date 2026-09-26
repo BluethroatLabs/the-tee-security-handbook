@@ -1,0 +1,97 @@
+<svg viewBox="0 0 460 1400"
+     width="100%"
+     preserveAspectRatio="xMidYMin meet"
+     xmlns="http://www.w3.org/2000/svg">
+
+  <defs>
+    <linearGradient id="boxGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1a33"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .title {
+      font: 600 19px Inter, system-ui, sans-serif;
+      fill: #e5e7eb;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .subtitle {
+      font: 15px Inter, system-ui, sans-serif;
+      fill: #5c81f8;
+    }
+    .text {
+      font: 15px Inter, system-ui, sans-serif;
+      fill: #e5e7eb;
+    }
+    .box {
+      fill: url(#boxGradient);
+      stroke: #94a3b8;
+      stroke-width: 2;
+      rx: 14;
+    }
+    .line {
+      stroke: #64748b;
+      stroke-dasharray: 6 6;
+      stroke-width: 1.5;
+    }
+  </style>
+
+  <!-- Axis label -->
+  <text x="40" y="50" class="subtitle">
+    ↑ Higher Assurance / Tamper Resistance / EAL Level
+  </text>
+
+  <!-- Vertical guide -->
+  <line x1="230" y1="80" x2="230" y2="1340" class="line"/>
+
+  <!-- Shared geometry -->
+  <!-- x = 30, width = 400, center = 230 -->
+
+  <!-- BOX 1 -->
+  <rect x="30" y="120" width="400" height="200" class="box"/>
+  <text x="230" y="155" text-anchor="middle" class="title">Standalone Secure Devices</text>
+  <text x="230" y="180" text-anchor="middle" class="subtitle">(EAL6–EAL7 / FIPS 140-3 L3)</text>
+  <text x="230" y="215" text-anchor="middle" class="text">• Hardware Security Modules</text>
+  <text x="230" y="245" text-anchor="middle" class="text">• Smartcards / SIM / eSIM</text>
+  <text x="230" y="275" text-anchor="middle" class="text">• YubiKey, NitroKey</text>
+  <text x="230" y="305" text-anchor="middle" class="text">• Payment SEs, JavaCard</text>
+
+  <!-- BOX 2 -->
+  <rect x="30" y="360" width="400" height="200" class="box"/>
+  <text x="230" y="395" text-anchor="middle" class="title">Co-Processor TEEs / SEs</text>
+  <text x="230" y="420" text-anchor="middle" class="subtitle">(EAL5–EAL6 / PSA L3)</text>
+  <text x="230" y="455" text-anchor="middle" class="text">• Apple Secure Enclave (SEP)</text>
+  <text x="230" y="485" text-anchor="middle" class="text">• Google Titan M / Titan</text>
+  <text x="230" y="515" text-anchor="middle" class="text">• TPM 2.0 / StrongBox SE</text>
+  <text x="230" y="545" text-anchor="middle" class="text">• Embedded Secure Elements</text>
+
+  <!-- BOX 3 -->
+  <rect x="30" y="620" width="400" height="200" class="box"/>
+  <text x="230" y="655" text-anchor="middle" class="title">SoC / CPU Partition TEEs</text>
+  <text x="230" y="680" text-anchor="middle" class="subtitle">(EAL2–EAL4+ / GP TEE PP)</text>
+  <text x="230" y="715" text-anchor="middle" class="text">• Arm TrustZone / OP-TEE</text>
+  <text x="230" y="745" text-anchor="middle" class="text">• Qualcomm QSEE / Kinibi</text>
+  <text x="230" y="775" text-anchor="middle" class="text">• Huawei iTrustee / TEEgris</text>
+  <text x="230" y="805" text-anchor="middle" class="text">• Arm CCA (Realms, RMM)</text>
+
+  <!-- BOX 4 -->
+  <rect x="30" y="900" width="400" height="200" class="box"/>
+  <text x="230" y="935" text-anchor="middle" class="title">CPU-Assisted TEEs</text>
+  <text x="230" y="960" text-anchor="middle" class="subtitle">(EAL2–EAL4, SW + HW)</text>
+  <text x="230" y="995" text-anchor="middle" class="text">• Intel SGX / TDX</text>
+  <text x="230" y="1025" text-anchor="middle" class="text">• AMD SEV-SNP</text>
+  <text x="230" y="1055" text-anchor="middle" class="text">• IBM PEF / s390x SE</text>
+  <text x="230" y="1085" text-anchor="middle" class="text">• RISC-V Keystone</text>
+
+  <!-- BOX 5 -->
+  <rect x="30" y="1160" width="400" height="200" class="box"/>
+  <text x="230" y="1195" text-anchor="middle" class="title">Software-Defined TEEs</text>
+  <text x="230" y="1220" text-anchor="middle" class="subtitle">(EAL1–EAL2, Logical only)</text>
+  <text x="230" y="1255" text-anchor="middle" class="text">• AWS Nitro Enclaves</text>
+  <text x="230" y="1285" text-anchor="middle" class="text">• gVisor / Kata Containers</text>
+  <text x="230" y="1315" text-anchor="middle" class="text">• Enarx (CVM-hosted)</text>
+  <text x="230" y="1345" text-anchor="middle" class="text">• Graphene / SCONE (SGX soft frameworks)</text>
+
+</svg>

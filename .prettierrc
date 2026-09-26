@@ -1,0 +1,11 @@
+{
+  "printWidth": 80,
+  "proseWrap": "always",
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "es5",
+  "tabWidth": 2,
+  "endOfLine": "lf",
+  "useTabs": false,
+  "objectWrap": "collapse"
+}
