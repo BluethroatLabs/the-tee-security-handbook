@@ -6,7 +6,7 @@
     "contributors:generate": "node scripts/generate-contributors.mjs",
     "prestart": "yarn contributors:generate",
     "predev": "yarn contributors:generate",
-    "prebuild": "yarn contributors:generate",
+    "prebuild": "git fetch --unshallow || yarn contributors:generate",
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
     "dev": "docusaurus start --no-open",
