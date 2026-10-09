@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="336" viewBox="0 0 420 336" role="img" aria-labelledby="title description">
+  <title id="title">Validation order matters</title>
+  <desc id="description">Raw input reaches an early consumer before a later generic decoder. The later decoder cannot protect the earlier consumer.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1e40af"/>
+    </marker>
+  </defs>
+  <rect width="420" height="336" rx="16" fill="#f8fafc"/>
+  <g fill="#eff6ff" stroke="#1e40af" stroke-width="2">
+    <rect x="32" y="24" width="356" height="72" rx="10"/>
+    <rect x="32" y="132" width="356" height="72" rx="10"/>
+    <rect x="32" y="240" width="356" height="72" rx="10"/>
+  </g>
+  <g fill="none" stroke="#1e40af" stroke-width="2.5" marker-end="url(#arrow)">
+    <path d="M210 98 V124"/>
+    <path d="M210 206 V232"/>
+  </g>
+  <g fill="#0f172a" font-family="system-ui, sans-serif" font-size="18" text-anchor="middle">
+    <text x="210" y="52">Raw input admitted</text>
+    <text x="210" y="76">by earlier layers</text>
+    <text x="210" y="174">Early consumer</text>
+    <text x="210" y="282">Later generic decoder</text>
+  </g>
+</svg>

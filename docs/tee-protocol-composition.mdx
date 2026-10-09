@@ -1,0 +1,126 @@
+---
+id: tee-protocol-composition
+title: TEE Protocol Composition and Consensus Liveness
+slug: /tee-protocol-composition
+---
+
+
+
+import PageBanner from '@site/src/components/PageBanner';
+
+<PageBanner
+  title=""
+  image="/img/banners/PG-03_Trust_in_a_Trustless_World.png"
+/>
+
+# TEE Protocol Composition and Consensus Liveness
+
+A protocol that requires enclave output to continue processing must define how valid input reaches the enclave, how required state advances, and how failures are handled. TEE isolation and attestation protect particular parts of that system. The surrounding protocol supplies the rules for agreement, execution, and recovery.
+
+Two publicly disclosed Secret Network findings illustrate distinct failures in this composition. One left required successor evidence unavailable; the other let an enclave parser fail before a later application decoder could handle the input. Both affected network progress while using the genuine enclave implementation. The [missing field article](https://bluethroatlabs.com/reveries/secret-network-nothing-halt) and [transaction parsing article](https://bluethroatlabs.com/reveries/secret-network-ordering-halt) provide the historical case studies.
+
+## Attestation and host behavior {/* #attestation-and-host-behavior */}
+
+Attestation lets a verifier evaluate claims about a measured environment under a policy: expected code identity, configuration, security attributes, and relevant platform status. Accepting those claims still leaves the application responsible for correct input handling and protocol behavior. Approved code can contain a parser bug or depend on a transition that another component can omit.
+
+The software outside a process enclave is a separate actor. It supplies inputs, schedules work, transports messages, and receives outputs. Measuring the enclave does not measure every part of that host software or constrain every choice it can make. The precise measured boundary depends on the platform; a confidential VM and a process enclave include different components within it.
+
+An Intel Software Guard Extensions (SGX) enclave call (ECALL) is a call from untrusted software into an enclave entry point. An outside call (OCALL) lets enclave code request an external service. These bridges carry data and return results; their existence does not establish application validity. Intel documents these entry points in its [Enclave Definition Language introduction](https://www.intel.com/content/www/us/en/developer/videos/introduction-to-the-enclave-definition-language-intel-sgx.html). AWS Nitro Enclaves virtual sockets (vsock) and confidential virtual machine (VM) interfaces have different mechanics, but also require defined schemas and failure behavior.
+
+For a validator or other admitted participant, distinguish eligibility from behavior. A participant can possess valid credentials and run an approved enclave while choosing protocol messages that honest participants must validate. State which actor may choose each message and which checks remain necessary after admission. The [host threat model](/dumb-ways-to-get-rekt-with-tees#threat-0-trusting-the-parent-instance) and [attestation foundations](/backdrop-tees-and-adjacent-tech#attestation-in-practice) provide the underlying concepts.
+
+## Required evidence and field presence {/* #required-evidence-and-field-presence */}
+
+A field's wire representation and its protocol requirement are separate specifications. A serializer may permit omission while the next protocol operation requires the evidence that field enables. Presence, encoding, proof validity, and the resulting state transition each need an explicit rule.
+
+For required evidence, verification must address absence as well as invalid content. A branch that verifies only a supplied proof leaves the absence case to another component. The protocol must identify that component and show that it enforces the requirement on every relevant path.
+
+Track a required state item from its producer to its consumer. Identify the operation that writes it, the conditions that permit the write, the operation that reads it, and the context to which it is bound. If accepted step H requires evidence at step H + 1, the protocol needs to ensure that completing H produces that evidence or reaches a defined continuation that preserves the same security guarantee.
+
+<img
+  src="/img/diagrams/required-evidence-transition.svg"
+  width="420"
+  alt="Accepted protocol step, then required enclave state update, then successor evidence, then successor validation, then continued progress."
+/>
+
+Evidence bound to a height, epoch, or session cannot automatically be replaced with evidence from another context. Binding helps prevent unauthorized reuse and may support anti-equivocation rules, which prevent a participant from authorizing incompatible histories. It also creates a progress requirement: valid evidence for the required context must become available. Reusing old evidence would weaken the guarantee that the binding was meant to provide.
+
+Optionality threatens liveness when it permits an accepted operation to skip an indispensable state update and the protocol defines no valid continuation. Some optional fields have safe defaults or deliberately affect only auxiliary behavior. Specify the dependency rather than inferring danger from a nullable type alone.
+
+## Commitments and validation schemas {/* #commitments-and-validation-schemas */}
+
+A hash or signature binds a defined representation. List the fields included in that representation and the fields supplied separately. A signature over a header does not automatically authenticate every nearby extension field; a hash of transaction bytes does not establish that those bytes decode under the application schema.
+
+Three questions therefore need separate answers: are the bytes bound to the agreed object, are they structurally valid, and do they satisfy the protocol's semantic requirements? Cryptographic integrity supplies the first answer only for the committed representation. Presence checks, decoding, and application policy supply the others.
+
+A validation hook can act only on information its interface exposes. If a request schema drops a field, a downstream callback cannot validate that field through the request. If only a hash is provided, determine whether it commits to the property the callback needs. Interface design must preserve the evidence required by the responsible validator.
+
+Adding a field to a commitment can protect its binding, but does not by itself enforce presence, validity, or required state advancement. Conversely, the appropriate representation of an extension may be defined elsewhere in the protocol. Evaluate the complete commitment and validation design together.
+
+## Validation before consumption {/* #validation-before-consumption */}
+
+Map input handling in execution order. List proposal checks, callbacks, enclave calls, decoders, and state writes as they actually occur. The relevant question is whether a consumer runs after the validation on which it relies.
+
+Consensus engines may carry application transactions as opaque byte strings. Size and commitment checks at that layer can be correct while application decoding remains a separate responsibility. Local remote procedure call (RPC) or mempool admission checks also apply to a different path from the validation of messages supplied by another admitted participant. The [CometBFT Application Blockchain Interface (ABCI) overview](https://github.com/cometbft/cometbft/blob/v0.38.23/spec/abci/abci%2B%2B_basic_concepts.md) separates local `CheckTx` admission, proposal handling, and execution of the decided block.
+
+An early block callback or enclave call that consumes raw data inherits the responsibility to handle every input the preceding layers permit. A generic decoder that runs later cannot protect that earlier consumer. An available proposal validation hook is similarly insufficient unless the application installs a policy with the required checks and the interface exposes the needed information.
+
+<img
+  src="/img/diagrams/validation-order.svg"
+  width="420"
+  alt="Raw input reaches an early consumer before the later generic decoder. The later decoder cannot protect the earlier consumer."
+/>
+
+The early consumer needs its own valid contract. It can validate the input at the boundary or use a defined representation established by a preceding trusted step. Enclave validation must still protect against hostile local software; replicated host checks can separately help honest participants reject invalid protocol messages before agreement. Name both responsibilities.
+
+## Errors across the enclave boundary {/* #errors-across-the-enclave-boundary */}
+
+Invalid external input is an expected condition. Decoders should report failure without assuming that every caller supplied valid content. An unchecked assertion or panic on input data can interrupt an enclave operation and propagate through the bridge into a critical caller. The runtime and bridge determine whether that failure affects an invocation, thread, enclave instance, or host process.
+
+Specify how each layer represents and handles failure. A structured parser error can become a bridge status, which can become a host error or a panic. Returning an error at one layer is insufficient if the next layer turns it into an unrecoverable interruption. Likewise, hiding sensitive details in an error message protects information disclosure but does not establish availability.
+
+The correct response depends on protocol semantics. An invalid proposal may require rejection before agreement. An application transaction that cannot execute may instead require a deterministic invalid result while the block continues to apply. For example, [CometBFT v0.38.23 transaction-result requirements](https://github.com/cometbft/cometbft/blob/v0.38.23/spec/abci/abci%2B%2B_app_requirements.md#specifics-of-exectxresult) retain invalid transactions in the decided block and require deterministic result codes and data. Some systems permit skipping a malformed record in one semantic processing stage. That choice must preserve the agreed representation, required evidence, and identical outcomes across honest participants.
+
+Retain raw committed data for commitment checks even when a later semantic stage omits an invalid record. Silently rewriting the object whose hash was agreed can introduce a new correctness failure. Define resource limits and timeouts as well as parse behavior, so that handling an error cannot become unbounded work or waiting.
+
+## Consensus safety and liveness {/* #consensus-safety-and-liveness */}
+
+Safety concerns incompatible outcomes, such as honest participants accepting conflicting histories. Liveness concerns continued progress under the protocol's stated assumptions. Agreement on an object and successful execution of that object are distinct steps. Participants can agree on the same object and subsequently share an execution failure.
+
+In CometBFT, a designated proposer supplies a candidate block for a round. Validators exchange prevotes and precommits, and a block reaches the commit step after precommits for that block represent more than two thirds of the voting power. The proposer is selected by a deterministic schedule weighted by voting power. Peers relay proposals, blocks, and votes through gossip. These mechanics describe how participants reach agreement; application and enclave processing must also support the resulting transition. See the [CometBFT v0.38.23 consensus specification](https://github.com/cometbft/cometbft/blob/v0.38.23/spec/consensus/consensus.md) for the voting and locking rules.
+
+TEE availability also has several scopes. A malicious host can suspend its own enclave, which is a local resource problem. A shared input or required state dependency can affect many honest replicas that execute the same implementation. Replicating machines or distributing key shares does not by itself remove such a shared dependency. The [CometBFT application requirements](https://github.com/cometbft/cometbft/blob/v0.38.23/spec/abci/abci%2B%2B_app_requirements.md#consensus-connection-requirements) explicitly discuss the progress risk when validators share an application bug.
+
+An integrated protocol must preserve its progress assumptions across the application and enclave paths. A quorum rule for agreement does not independently prove that every accepted object can be applied or that every required enclave transition completes. Document the participant roles, fault limits, synchrony assumptions, and shared services needed for progress.
+
+Economic defenses require an enforceable rule. State what constitutes misconduct, what evidence can establish it, which mechanism processes that evidence, and when the penalty can be applied. A valid signature is not necessarily evidence of a defined slashable offense. Include actors willing to absorb their own losses in the availability model, and check whether enforcement remains usable during the incident.
+
+## State persistence and recovery {/* #state-persistence-and-recovery */}
+
+Inventory state in the enclave, sealed storage, application database, consensus log, and external services. Identify which state is authoritative for each operation and how the other copies are synchronized. A restart resets some runtime state and preserves other state; it is not a universal reconstruction mechanism. The [CometBFT crash recovery specification](https://github.com/cometbft/cometbft/blob/v0.38.23/spec/abci/abci%2B%2B_app_requirements.md#crash-recovery) describes how its consensus and application states are synchronized after an interruption; any additional enclave state needs a compatible recovery design.
+
+Sealing can protect stored data according to a platform's key and identity policy. Freshness, rollback resistance, and synchronization with the latest accepted protocol state require additional design. A preserved key does not establish that every required transition occurred.
+
+Recovery replay means reconstructing state from authenticated history. Replay protection means rejecting unauthorized reuse of messages. These mechanisms can coexist, but their permissions and freshness requirements must be designed together. Identify which historical records recovery needs, whether those records exist, who can serve them, and how the recovering node validates them.
+
+A recovery policy can deadlock if it requires a record that is produced only after the system makes progress. It can also fail when an access restriction excludes the stalled context or a bootstrap branch is available only to fresh nodes. Preserve the security purpose of those restrictions and provide a defined recovery transition for already registered participants.
+
+After an interruption, a safe continuation must retain authentication, anti-equivocation, and freshness guarantees. Disabling the guard that exposed the inconsistency can permit unauthorized state. Specify how operators restore the prerequisite rather than assuming that the guard can be bypassed.
+
+## Governance during a halt {/* #governance-during-a-halt */}
+
+An emergency mechanism has dependencies just like any other protocol component. An on-chain pause, vote, or upgrade requires block production and execution. If those prerequisites are unavailable, the response plan needs a reachable procedure with explicit authorization and agreement rules.
+
+Document the state from which the procedure starts, the code and state changes it permits, and how participants converge on one continuation. Define how it retains evidence, prevents incompatible recovery choices, and restores normal validation. The appropriate mechanism depends on the network's governance and trust model.
+
+Recovery capacity affects the duration and consequences of an incident. Distinguish an interruption that an operator can resolve independently from one requiring coordinated action. Describe the actual dependency and procedure rather than treating governance as an automatic final safety net.
+
+## Validating integration behavior {/* #validating-integration-behavior */}
+
+Validation should establish both the local behavior and its effect on protocol progress. A parser test can show that invalid data returns an error. An integration test must establish that the intended protocol path handles that error consistently, preserves required state, and continues according to the specification.
+
+Record the relevant software revision, dependency versions, build features, enclave artifact identity, and bridge configuration. Separate changes to a host application from changes to measured enclave code. Artifact parity helps establish which component changed, but it does not independently prove the application's semantics.
+
+Simulation is useful for repeatable logic tests. Real hardware can resolve questions about attestation, bridge statuses, runtime failure containment, or behavior specific to the deployed platform. Choose the evidence needed for the claim; a simulation result alone does not establish those hardware properties.
+
+Measure outcomes beyond process health or a successful signature. Observe state advancement, agreement, execution, error containment, and authorized recovery. For persistent state, verify the expected continuation after restart or reconstruction under the production configuration. The evidence should support the precise availability and recovery claim being made.
