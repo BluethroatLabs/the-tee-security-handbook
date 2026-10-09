@@ -561,15 +561,25 @@ In 2020, Compound had a price oracle manipulation vulnerability (not TEE-related
 
 With TEE-based oracles using Setup 1, this attack becomes **trivially easy** for anyone with parent instance access.
 
+### Threat 11: Required evidence treated as optional
+
+A schema may allow omission of a field that the protocol needs to advance. Checking a proof only when it is present leaves the presence requirement unenforced. Define absence, empty content, invalid encoding, and invalid evidence separately. Each required check needs an owner whose interface carries the relevant data. See [Required evidence and field presence](/tee-protocol-composition#required-evidence-and-field-presence) and [Commitments and validation schemas](/tee-protocol-composition#commitments-and-validation-schemas).
+
+### Threat 12: Consuming input before validation
+
+An early callback can receive data before the generic decoder checks it. An enclave parser on that path must treat invalid input as a defined result, with bounded resource use and consistent behavior. A parser panic can otherwise escape through the bridge and interrupt the caller's critical work. See [Validation before consumption](/tee-protocol-composition#validation-before-consumption) and [Errors across the enclave boundary](/tee-protocol-composition#errors-across-the-enclave-boundary).
+
+### Threat 13: Required enclave state does not advance
+
+If the next operation requires evidence from the preceding operation, every accepted transition must produce that evidence or take a defined recovery path. A conditional writer and a mandatory reader can leave application state and enclave state at incompatible positions. Authentication and isolation can both work while progress fails. See [Required evidence and field presence](/tee-protocol-composition#required-evidence-and-field-presence) and [Consensus safety and liveness](/tee-protocol-composition#consensus-safety-and-liveness).
+
+### Threat 14: Recovery depends on unavailable progress
+
+Recovery can fail if it needs a live output, a fresh block, or a bootstrap permission that an already registered node does not possess. Design the recovery transition from the actual stalled state. Retain the reason for the original security restriction and provide an authorized alternative that works without circular dependencies. See [State persistence and recovery](/tee-protocol-composition#state-persistence-and-recovery) and [Governance during a halt](/tee-protocol-composition#governance-during-a-halt).
+
 ### **Conclusion: The Web3 TEE Security Crisis**
 
-Every attack follows the same flow:
-
-1. Developer trusts something they shouldn't (parent, metadata, timing, error messages)
-2. TEE hardware works perfectly (isolation, encryption, attestation all function)
-3. Implementation leaks data through **side channels** (vsock metadata, timing, crashes, errors)
-4. Attacker exploits leaked data for **immediate financial gain**
-5. Blockchain immutability makes it **permanent and irreversible**
+Software composition failures can arise while TEE isolation and attestation operate correctly. A protocol may trust unchecked input, omit a required transition, or depend on an unavailable external service. The resulting harm can affect confidentiality, integrity, or availability. Identify the particular guarantee that failed and the boundary responsible for enforcing it; recovery is part of that design.
 
 #### **The Uncomfortable Truth**:
 
