@@ -70,6 +70,9 @@ Key architectural components:
   - TrustZone / CCA: SMC calls
   - SEV-SNP: GHCB
   - TDX: TDVMCALL
+
+  An SGX ECALL invokes an enclave entry point from untrusted software; an OCALL lets enclave code request a service outside the enclave. Crossing either boundary does not establish that the supplied data is valid. The application must define its schema, authorization checks, and failure behavior. Other TEE families expose different bridges, but all need explicit responsibilities for validating inputs and handling unavailable services. See [Errors across the enclave boundary](/tee-protocol-composition#errors-across-the-enclave-boundary).
+
 - **Lifecycle phases:** load → measure → initialize → attest → run → update/rotate → teardown
 
 ## Key terminology
@@ -144,6 +147,8 @@ Key architectural components:
    - measurements/configuration (hashes, config, PCR/SVN levels),
    - policies (version, signer identity, etc.).
 4. If valid, the verifying party securely **provisions secrets**.
+
+A verified attestation establishes claims about the measured environment according to the verifier's policy. The approved program still needs correct protocol logic, input handling, and state transitions. Software outside the measured boundary can choose, omit, delay, or reorder inputs; isolation does not make that software cooperative. These distinctions matter when a protocol requires enclave output to continue processing. See [Attestation and host behavior](/tee-protocol-composition#attestation-and-host-behavior).
 
 ## Developer surface
 

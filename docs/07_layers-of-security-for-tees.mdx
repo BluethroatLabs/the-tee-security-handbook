@@ -26,6 +26,12 @@ Real systems fail in messy, subjective ways: unexpected side-channels, misconfig
 
 Good governance is not a "nice to have". It is what catches everything that cryptographic security, hardware isolation, and formal proofs cannot cover. A permissionless, TEE-secured, ZK-verified network is only as safe as the speed and clarity of its governance actions when things go sideways.
 
+Governance mechanisms have execution prerequisites. A pause transaction, key rotation vote, or on-chain upgrade may need the very block production that an incident has interrupted. Define which response mechanisms remain reachable during a halt and who can authorize them. An emergency procedure must preserve agreement and authentication while giving operators a concrete way to restore progress. See [Governance during a halt](/tee-protocol-composition#governance-during-a-halt).
+
+### Availability and protocol composition
+
+Attestation, constant-time cryptography, threshold keys, and verifiable computation each protect particular guarantees. Every combination also needs explicit rules for message validity, required state advancement, deterministic failure handling, and recovery. These requirements remain relevant when hardware is uncompromised. Several replicas can share the same parser or state dependency, so distributing keys does not by itself prevent a shared interruption. Assess confidentiality, integrity, and availability separately, and record the assumptions behind each. See [TEE Protocol Composition and Consensus Liveness](/tee-protocol-composition).
+
 ### LAYER 0: Baseline, No TEEs
 
 **Risks**:
