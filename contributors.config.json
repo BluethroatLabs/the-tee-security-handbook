@@ -5,7 +5,11 @@
   "contributors": [
     {
       "name": "Rahul Saxena",
-      "emails": ["saxenism@bluethroatlabs.com", "rahulsaxena.pro@gmail.com"],
+      "emails": [
+        "saxenism@bluethroatlabs.com",
+        "rahulsaxena.pro@gmail.com",
+        "32522659+saxenism@users.noreply.github.com"
+      ],
       "avatar": "https://github.com/saxenism.png?size=512",
       "tags": ["Maintainer", "TEE security"],
       "about": "Maintainer at Bluethroat Labs and former zkSync security engineer.",

@@ -7,6 +7,7 @@ const sidebars: SidebarsConfig = {
     { type: 'doc', id: 'what-to-expect' },
     { type: 'doc', id: 'backdrop-tees-and-adjacent-tech' },
     { type: 'doc', id: 'tees-in-web3' },
+    { type: 'doc', id: 'tee-protocol-composition' },
 
     // Platform Profiles
     {
