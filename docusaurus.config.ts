@@ -21,8 +21,7 @@ const config = {
           showLastUpdateAuthor: true,
           showLastUpdateTime: true,
           lastVersion: 'current',
-          // update this when releasing a new version
-          // versions: { current: { label: '0.2' } },
+          versions: { current: { label: '1.1' } },
         },
         blog: false,
         theme: { customCss: './src/css/custom.css' },
@@ -42,18 +41,15 @@ const config = {
         height: 24,
       },
       items: [
-        // uncomment this when pinning the first version
-        // {
-        //   type: 'docsVersionDropdown',
-        //   position: 'right',
-        //   dropdownActiveClassDisabled: true,
-        //   label: 'Version',
-        //   versions: {
-        //     // update this when releasing a new version
-        //     current: { label: '0.2 (Latest)' },
-        //     0.1: { label: '0.1' },
-        //   },
-        // },
+        {
+          type: 'docsVersionDropdown',
+          position: 'right',
+          dropdownActiveClassDisabled: true,
+          versions: {
+            current: { label: '1.1 (Latest)' },
+            '1.0': { label: '1.0' },
+          },
+        },
         {
           href: 'https://bluethroatlabs.com',
           label: 'Website',

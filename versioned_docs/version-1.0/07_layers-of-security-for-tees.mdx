@@ -1,0 +1,342 @@
+---
+title: Layers of security for protocols building with TEEs
+---
+
+import PageBanner from '@site/src/components/PageBanner';
+
+<PageBanner
+  title=""
+  image="/img/banners/PG-07_Defense_in_Depth.png"
+/>
+
+
+# Layers of security for protocols building with TEEs
+
+### Introduction
+
+When protocols say "we use TEEs," it can mean anything from absolutely no protection to a full cryptographic fortress. There is no single "TEE security model"... there are layers. Each layer removes entire classes of risk, and each layer demands exponentially more engineering discipline.
+
+This page breaks down those layers: from zero protection to fully verifiable, distributed, economically-incentivised security, so you can understand exactly what guarantees you're getting, what risks still remain, and what it actually takes to run TEEs safely in production.
+
+### A note on governance
+
+No matter how advanced your architecture is, TEE-only, TEE+MPC, or full ZK-verified execution, there will always be edge cases that live outside the clean boundaries of cryptography and hardware guarantees.
+
+Real systems fail in messy, subjective ways: unexpected side-channels, misconfigured attestation policies, enclave supply-chain bugs, timing anomalies that no threat model predicted. This is where *robust and swift governance* becomes the final security layer. A well-designed governance framework acts like a shock absorber: it lets the protocol respond quickly to emerging attacks, rotate keys, slash misbehaving nodes, quarantine suspicious enclaves, and deploy emergency patches.
+
+Good governance is not a "nice to have". It is what catches everything that cryptographic security, hardware isolation, and formal proofs cannot cover. A permissionless, TEE-secured, ZK-verified network is only as safe as the speed and clarity of its governance actions when things go sideways.
+
+### LAYER 0: Baseline, No TEEs
+
+**Risks**:
+
+- Complete transparency - all data public
+- MEV extracted freely
+- No privacy, no confidentiality
+- Front-running on every transaction
+
+**Guarantees**: NONE
+
+**Implementation Overhead**: 0/10
+
+**Performance**: 100% (baseline)
+
+**When to use**: Never for privacy/MEV protection use cases
+
+---
+
+### LAYER 1: TEE Only (DO NOT USE IN PRODUCTION)
+
+**Risks MITIGATED**:
+
+- Public data exposure (data encrypted in TEE)
+- Direct OS memory access
+- Plaintext transaction visibility
+
+**Risks REMAINING:**
+
+- Parent instance MitM via vsock metadata analysis
+- Timing oracle attacks (150ms vs 100ms processing reveals transaction types)
+- Memory crash dumps leak secrets to parent
+- Hardcoded secrets in EIF extracted via **`cpio -idv < ramdisk.cpio`**
+- KMS response manipulation (Setup 1 without authentication)
+- Error message information leakage ("InvalidSignature" vs "AlreadyVoted")
+- L3 cache side-channels on shared NUMA nodes
+- No attestation verification = accept malicious enclaves
+- Spectre/Meltdown/Foreshadow attacks
+- Physical attacks (WireTap) if on-premises
+
+**Guarantees**:
+
+- Encrypted memory (if TEE hardware works)
+- OS cannot directly read plaintext
+- Basic isolation from host OS
+
+**Real Attacks**:
+
+- Flashbots Relay: $25M stolen via information leak   
+ [https://www.coinglass.com/de/news/145094](https://www.coinglass.com/de/news/145094)
+- Secret Network: Testnet consensus seed extracted (mainnet at risk)
+
+---
+
+### LAYER 2: TEE + Correct Attestation
+
+At this security layer, you are combining Trusted Execution Environments (TEEs) with strict attestation mechanisms. This means not just running your sensitive code inside a secure "enclave," but also proving cryptographically that the enclave code is genuine and untampered.
+
+**Risks MITIGATED** (In addition to Layer 1):
+
+- Malicious enclave impersonation
+- Backdoored kernel acceptance (if PCR-1 checked)
+- Fake TEE software
+- Supply chain attacks (PCR verification catches tampering)
+
+**Risks REMAINING**:
+
+- Timing side-channels still leak transaction data
+- vsock metadata reveals transaction types (packet sizes, timing)
+- Memory management crashes expose secrets
+- KMS Setup 1 MitM attacks
+- Hardcoded secrets in EIF
+- No key rotation = eventual compromise via side-channels
+- Cache side-channels (L3 shared on multi-tenant)
+- Parent time manipulation
+
+**Implementation Overhead**: 7/10
+
+**Guarantees** (Additional):
+
+- Cryptographic proof of running code (PCR values)
+- Known software identity
+- Cannot run undetected malicious code
+- Supply chain integrity verified
+
+**Real Attacks**:
+
+- WireTap: Secret Network, Phala, Crust compromised (physical memory bus attack)
+- Still vulnerable to all timing-based attacks
+
+**Implementation Overhead**: 7/10
+
+**Minimum Viable**: For protocols with < $10M TVL, basically any protocol that is now dealing with adult money.
+
+---
+
+### LAYER 3: TEE + Attestation + Constant-Time Crypto
+
+This layer takes everything from the previous layer (trusted enclave plus cryptographic proof of what is running) and adds "constant-time cryptography"—meaning all secret handling and transaction processing happen at the same speed, regardless of the data involved.
+
+Any difference in how long operations take can leak secrets. This layer stops attackers from guessing secrets by measuring timing differences, so even looking at network packets or execution speeds won't reveal anything.
+
+**Risks MITIGATED** (In addition to Layer 2):
+
+- Timing oracle attacks via vsock eliminated
+- Side-channel key extraction via timing prevented
+- Transaction size/type inference defeated
+- Order book depth leakage prevented
+- Bid amount leakage in auctions prevented
+
+**Risks REMAINING**:
+
+- Single TEE compromise = total loss (no distribution)
+- Hardcoded keys still extractable from EIF
+- KMS MitM (if using Setup 1)
+- Memory crashes still possible
+- Physical attacks still extract all keys
+- Parent can still DoS via vsock blocking
+- No independent verification of computation correctness
+
+**Guarantees** (Additional):
+
+- Timing attacks defeated across all operations
+- Side-channel resistant cryptography
+- No transaction metadata leakage
+- Constant-time execution guarantees
+
+**Implementation Overhead**: 8/10
+
+**Real Attacks**:
+
+- Samsung Keymaster IV reuse: 100M devices, keys extractable [https://www.theregister.com/2022/02/23/samsung_encryption_phones/](https://www.theregister.com/2022/02/23/samsung_encryption_phones/)
+- Single-key compromise is still catastrophic
+
+**Required For**:
+
+- MEV protection / encrypted mempools
+- Private order books
+- Sealed-bid auctions
+- Any protocol where timing reveals sensitive data
+
+---
+
+### LAYER 4: TEE + MPC/Threshold Keys
+
+This layer combines secure enclaves (TEEs) with MPC (Multi-Party Computation) and threshold cryptography. Instead of storing a full key in one place, the key is split among multiple nodes, each inside its own TEE. Protocol operations (signing, decrypting) require several nodes to cooperate—no single node ever has the full key.
+
+Why this matters:
+
+- If one TEE is hacked or stolen, the attacker **cannot** get the key—they need to compromise multiple nodes at once.
+- Key theft now requires "M-of-N" collusion (for example, 3 out of 5 nodes must be compromised to reconstruct the key).
+- Even physical access isn't enough—you'd need to break or steal from several places, not just one.
+
+**Risks MITIGATED** (Additional to Layer 3):
+
+- Single point of key compromise eliminated
+- Total loss from one TEE break prevented
+- Insider key theft requires M-of-N collusion
+- Physical access key extraction insufficient (need M nodes)
+
+**Risks REMAINING**:
+
+- All N TEE nodes compromised simultaneously (coordinated attack)
+- Threshold signature operations have timing variations
+- MPC protocol vulnerabilities
+- Network-level attacks on MPC coordination
+- TEE + MPC implementation bugs compound
+- Cannot prove computation correctness (still need trust)
+
+**Guarantees** (Additional):
+
+- M-of-N threshold required (e.g., 3-of-5 nodes)
+- Distributed trust model
+- Single compromise insufficient for exploit
+  - Exploit cost goes up exponentially if the TEE machines are geographically distributed
+- Key shares never combined in one location
+
+**Implementation Overhead**: 9/10
+
+**Real Attacks**:
+
+- Ronin Bridge: $625M stolen [https://www.bbc.com/news/technology-60933174](https://www.bbc.com/news/technology-60933174) (showed MPC alone not enough - needed social engineering + key theft)
+- No major TEE+MPC exploit yet, but attack surface identified
+
+**Required For**:
+
+- Cross-chain bridges
+- Validator key management
+- High-value key storage
+- Any single point of failure scenario
+
+---
+
+### LAYER 5: TEE + MPC + Zero-Knowledge Proofs
+
+**Risks MITIGATED** (Additional to Layer 4):
+
+- Need to trust TEE for correctness eliminated
+- Independent verification of computation enabled
+- TEE compromise with silent manipulation detected
+- Public auditability without data exposure
+
+**Risks REMAINING**:
+
+- TEE compromise may go undetected for extended periods
+- ZK proof generation in TEE can leak via timing
+- Proof verification doesn't prevent TEE data theft (only correctness)
+- High complexity = exponentially more implementation bugs
+- Performance overhead can cause availability issues
+
+**Guarantees** (Additional):
+
+- Verifiable computation (ZK proofs)
+- Public verification without trust
+- Cryptographic correctness guarantees
+- Independent validation by any party
+
+**Real Attacks**:
+
+- Nomad Bridge: $190M stolen [https://cloud.google.com/blog/topics/threat-intelligence/dissecting-nomad-bridge-hack/](https://cloud.google.com/blog/topics/threat-intelligence/dissecting-nomad-bridge-hack/) (not TEE, but shows ZK circuit bugs are real)
+- No major TEE+ZK exploit, but complexity-driven bugs expected
+
+**Implementation Overhead**: 9.5/10
+
+**Required For**:
+
+- Institutional DeFi
+- High-security requirements
+- Regulatory compliance needs
+- Systems requiring public verifiability
+
+---
+
+### LAYER 6: TEE + MPC + ZK + Economic Incentives (Sting Framework)
+
+**Risks MITIGATED** (Additional to Layer 5):
+
+- Undetected TEE compromise (bounties incentivize detection)
+- No incentive to find vulnerabilities (bug bounties via smart contracts)
+- Stealth attacks without consequences (provable exploit = automatic payout)
+
+**Risks REMAINING**:
+
+- Economic bounties may be insufficient vs sophisticated attackers
+- Coordinated attacks before detection window closes
+- Sting Framework implementation bugs
+- Bounty hunters vs attackers race condition
+- Smart contract bounty logic exploitable
+
+**Guarantees** (Additional):
+
+- Economic deterrence via bounties
+- Provable compromise detection mechanism
+- Automatic compensation for users if exploited
+- Continuous security monitoring incentivized
+
+**Real Attacks**:
+
+- Theoretical - not widely deployed
+- Bounty hunting vs attackers race condition TBD
+
+**Implementation Overhead**: 9.8/10
+
+**Required For**:
+
+- Critical infrastructure
+- Systems where failure is unacceptable
+- Maximum security posture
+
+---
+
+### Hybrid Architectures: Mixing Layers Strategically
+
+**Concept**: Not all operations need the same security level.
+
+**Example Strategy**:
+
+- **Key management**: Layer 4 (TEE + MPC)
+- **Transaction execution**: Layer 3 (constant-time)
+- **Public queries**: Layer 2 (attestation only)
+- **Verification**: Layer 5 (ZK proofs for critical ops)
+
+#### **Benefits**
+
+- Optimize cost vs security per operation type
+- High-value operations get Layer 5, routine ops get Layer 3
+- Average cost: $250K/month vs $500K for full Layer 6
+
+#### **Why Cost Shrinks With Hybrid**
+
+- **Selective hardening:** Only high-value/high-risk actions (like key management, sensitive transactions, and reporting) get expensive ZK+MPC layers.
+- **Routine ops:** Cheaper layers suffice for noncritical work, dramatically reducing required infra, compute, and audit hours.
+
+#### **Risks**:
+
+- Complexity increases attack surface
+- Need clear security boundaries
+- Operations must not leak data across layers
+
+#### **Real Example**:
+
+Secret Network post-WireTap
+
+- Moved from "TEE for everything" (Layer 1-2)
+- To "TEE + defense-in-depth" (selective Layer 4-5)
+- Onchain governance as fallback
+- Ephemeral keys reduce compromise impact
+
+---
+
+### Resources on how to think about Hybrid architectures:
+
+1. [saxenism's tweet](https://x.com/saxenism/status/1987931403582140482?s=20)
+2. [CHURP Architecture](https://x.com/markowifk/status/1986745376863302100?s=20)
