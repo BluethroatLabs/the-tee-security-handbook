@@ -21,7 +21,7 @@ const config = {
           showLastUpdateAuthor: true,
           showLastUpdateTime: true,
           lastVersion: 'current',
-          versions: { current: { label: 'v1.1' } },
+          versions: { current: { label: '1.1' } },
         },
         blog: false,
         theme: { customCss: './src/css/custom.css' },
@@ -41,7 +41,15 @@ const config = {
         height: 24,
       },
       items: [
-        { type: 'docsVersion', position: 'right' },
+        {
+          type: 'docsVersionDropdown',
+          position: 'right',
+          dropdownActiveClassDisabled: true,
+          versions: {
+            current: { label: '1.1 (Latest)' },
+            '1.0': { label: '1.0' },
+          },
+        },
         {
           href: 'https://bluethroatlabs.com',
           label: 'Website',

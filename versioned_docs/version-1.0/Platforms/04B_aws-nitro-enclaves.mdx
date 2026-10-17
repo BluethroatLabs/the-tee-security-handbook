@@ -1,0 +1,532 @@
+---
+title: AWS Nitro Enclaves
+slug: /platforms/aws-nitro-enclaves
+---
+
+import PageBanner from '@site/src/components/PageBanner';
+
+<PageBanner
+  title=""
+  image="/img/banners/PG-04B_The_Sealed_Room.png"
+/>
+
+
+# AWS Nitro Enclaves
+
+## Introduction
+
+AWS Nitro Enclaves is an Amazon EC2 feature that allows you to carve out isolated execution environments (enclaves) from Nitro-based EC2 instances. Enclaves are separate, hardened, highly constrained virtual machines that share the same physical host as the parent instance, but expose only a secure local socket interface back to that instance. They provide no persistent storage, no interactive access, and no external networking, and the parent instance (including root/admin users and the kernel) cannot directly access enclave memory or processes.  
+Nitro Enclaves leverage the same Nitro Hypervisor that enforces CPU and memory isolation between EC2 instances, extending those guarantees to a trusted execution environment (TEE) nested inside the parent instance. The hypervisor ensures that enclave vCPUs and memory are strictly isolated from the parent's memory, even though they sit on the same physical host.
+
+> Nitro Enclaves are compatible across many of Nitro-based instance families (M5, R5, C5, z1d, C5n) with no additional charges on top of included cost of the parent EC2 instance.
+
+### Key Features
+
+- **Isolation & Security:** Nitro Enclaves create a compartmentalised environment with dedicated CPU and memory resources, completely isolated from the parent instance. This physical and logical separation prevents unauthorised access to sensitive data and code.
+
+- **Direct Integration with AWS Services:** Enclaves can securely communicate with AWS Key Management Service (KMS) and AWS Certificate Manager (ACM) over TLS. This enables automatic attestation and key retrieval, ensuring that only approved, attested code can access critical credentials.
+
+- **Minimal Access & Attestation:** With no persistent storage, network access, or interactive interfaces, the enclave's operational footprint is minimised. It's built-in attestation mechanism generates a cryptographic hash of the running container, allowing you to verify that only the expected code is executing.
+
+- **Ease of Deployment:** The Nitro Enclaves SDK and CLI simplify the process of containerising and deploying applications, making it straightforward for development and DevOps teams to integrate enclave support into their workflows.
+
+### Hardware-Based Isolation and Nitro System
+
+The AWS Nitro System splits traditional hypervisor responsibilities across dedicated hardware and a minimal hypervisor to reduce attack surface and provide strong tenant isolation. Virtualization and I/O are largely handled by Nitro hardware, and the Nitro Hypervisor's memory is isolated from customer memory while I/O paths are kept off the main CPU.
+
+Nitro Enclaves build directly on this model:
+
+- **CPU and memory isolation** for enclaves is enforced by the same Nitro Hypervisor that isolates EC2 instances. The parent instance cannot access the enclave's vCPUs and memory.
+
+- **I/O separation** is preserved: enclaves have no direct network or storage devices. All communication must pass through a purpose-limited, local **virtual socket** (**vSock,** which is commonly available Open Source technology present in the Linux kernel since 2016) channel that terminates on the parent instance.
+
+- **Resource lifecycle management** for Nitro Enclaves allow for upto four enclave instances per parent instance. Enclave instances are ONLY active when their parent instance are active and hibernation cannot be enabled on instances that also use enclaves.
+
+From a TEE perspective, you can think of Nitro Enclaves as:
+
+> A secondary guest VM, carved out from a Nitro-based instance, with an even more constrained attack surface and a hardware-rooted identity that is exposed to applications via cryptographic attestation.
+
+Where a general Nitro instance gives you strong isolation from other tenants and from AWS control plane code, Nitro Enclaves narrows the trust boundary further so that **even the parent OS and its users are excluded** from the enclave's trust domain.
+
+## How it works
+
+<div
+  style={{
+    display: "flex",
+    justifyContent: "center",
+  }}
+>
+  <img
+    src="/img/diagrams/nitro-enclaves/mgmt-flowchart.png"
+    alt="Nitro Enclave Application Management Flowchart  Diagram"
+    style={{ maxWidth: "90%", height: "auto" }}
+  />
+</div>
+
+- The application is first built and converted to a nitro supported image called Enclave Image File (EIF) using Nitro CLI.
+
+- This image then can be used to invoke a new enclave running inside the specified hardware using Nitro CLI and allocating resources that would be required to run the enclave image.
+
+- Nitro Enclaves can produce attestation documents that are signed by the Nitro Hypervisor at runtime.
+
+- An enclave's measurements include a series of hashes and platform configuration registers (PCRs) that are unique to the enclave.
+
+Let's dive deeper into specifics!
+
+### Enclave & Parent Instance
+
+An enclave is a virtual machine with its own kernel, memory, and CPUs, created by partitioning vCPUs and memory from a Nitro-based parent instance. It has:
+
+- No external network connectivity.
+
+- No persistent storage.
+
+- vCPUs and memory that cannot be accessed by processes, applications, kernel, or users (including root) on the parent instance.
+
+This combination of hardware-enforced isolation and a constrained runtime is what makes the enclave a TEE in the Nitro world. Each enclave has an Enclave ID, globally unique across AWS. The ID combines the parent instance ID, and a per-enclave identifier. This identifier is important for operations, logging, and auditing, such as when interpreting CloudTrail logs for enclave-related API calls.
+
+The parent instance is the EC2 instance that contributes CPU cores and memory to one or more enclaves. Those resources remain allocated to the enclave for its lifetime, and the parent is the only instance that can communicate with the enclave (via vSock).
+
+### Enclave Image File (EIF)
+
+An **Enclave Image File (.eif)** packages the runtime that will boot inside the enclave. EIFs are built using the Nitro Enclaves CLI (Nitro CLI), often from Docker images, and are the unit of deployment and measurement for the enclave. They typically include:
+
+- A Linux operating system.
+
+- Required libraries.
+
+- One or more enclave applications.
+
+### Nitro Enclaves CLI
+
+The **Nitro CLI** is a command-line tool that runs on the parent instance and is used to:
+
+- Build enclave image files (`nitro-cli build-enclave`).
+
+- Launch enclaves (`nitro-cli run-enclave`).
+
+- Inspect running enclaves (`nitro-cli describe-enclaves`, `nitro-cli console`).
+
+- View EIF metadata and measurements (`nitro-cli describe-eif`, `nitro-cli pcr`).
+
+- Terminate enclaves (`nitro-cli terminate-enclave`).
+
+### Nitro Enclaves SDK
+
+The Nitro Enclaves SDK is an **open-source** library used to build enclave applications or port existing applications to run inside an enclave. It provides APIs for cryptographic attestation (requesting an attestation document from the Nitro Hypervisor). The SDK also integrates with AWS KMS for running `Decrypt`, `GenerateDataKey`, and `GenerateRandom` directly from the enclave.
+
+### Cryptographic Attestation, Attestation Document, and PCRs
+
+#### Attestation Overview
+
+A critical component of Nitro Enclaves security is cryptographic attestation, which enables third parties to verify the integrity of the enclave's runtime environment.
+
+- The enclave uses the Nitro Enclaves SDK to request an attestation document from the Nitro Hypervisor.
+
+- The attestation document includes measurements (PCRs) that are unique to that enclave and its environment.
+
+- The enclave attaches this document to requests to external services.
+
+- The external service validates the measurements against its access policy before authorizing sensitive operations.
+
+#### Attestation Document
+
+Here is the general format of an Attestation Document:
+
+```
+AttestationDocument = {
+    module_id: text,               ; issuing Nitro hypervisor module ID
+    timestamp: uint .size 8,       ; UTC time when document was created, in
+                                   ; milliseconds since UNIX epoch
+    digest: digest,                ; the digest function used for calculating the
+                                   ; register values
+    pcrs: { + index => pcr },      ; map of all locked PCRs at the moment the
+                                   ; attestation document was generated
+    certificate: cert,             ; the infrastructure certificate used to sign this
+                                   ; document, DER encoded
+    cabundle: [* cert],            ; issuing CA bundle for infrastructure certificate
+    ? public_key: user_data,       ; an optional DER-encoded key the attestation
+                                   ; consumer can use to encrypt data with. This key has
+                                   ; to be generated by the user-application and must be
+                                   ; included in the attestation request
+    ? user_data: user_data,        ; additional signed user data, defined by protocol
+    ? nonce: user_data,            ; an optional cryptographic nonce provided by the
+                                   ; attestation consumer as a proof of authenticity
+}
+
+cert = bytes .size (1..1024)       ; DER encoded certificate
+user_data = bytes .size (0..1024)
+pcr = bytes .size (32/48/64)       ; PCR content
+index = 0..31
+digest = "SHA384"
+```
+
+The enclave and service which want to attest the enclave agree on a protocol to follow which can be customised using optional parameters in the Attestation Document (`public_key`, `user_data`, `nonce`). Services which rely on enclave security defines this protocol and the enclace software follows it.
+
+The enclave requests an attestation document from the Nitro Attestation Service. This document includes:
+
+- A hash (SHA-384) of the enclave's Docker image, kernel, and application binaries.
+
+- Metadata such as the parent instance ID, launch time, and AWS Region.
+
+- An optional nonce provided by the enclave to prevent replay attacks.
+
+- Optional additional user-defined data which can optionally be encrypted using the public key of attestaion consumer.
+
+> Using `nonce` and a `public_key` is highly encouraged to add encryption to user_data in transit and guarantee that the attesation consumer service is interacting with a live enclave (rather than a malicious actor using a previously valid but stale attesation document). 
+
+The document is signed by AWS's Nitro Attestation Public Key Infrastructure (PKI), allowing external services like AWS Key Management Service (KMS) or custom certificate authorities to validate the enclave's identity by communicating over secure TLS channels with KMS. This allows you to create access rules within the KMS so only enclaves with a particular hash (i.e. a specific pre-agreed docker container having the PCR values, running pre-agreed code) get to decrypt/process sensitive data.
+
+The KMS key policy is configured with condition keys (such as `kms:RecipientAttestation:ImageSha384` or `kms:RecipientAttestation:PCR0`) so that only an enclave whose attestation document matches the expected measurement (i.e. the production‑mode, signed EIF) is allowed to use the key.
+
+#### Platform Configuration Registers (PCRs)
+
+PCRs allow external services to anchor trust in specific code, configuration, roles, and infrastructure. An enclave has six measurements recorded as PCRs. These are included in the attestation document:
+
+| PCR | Hash of ... | Description |
+|-----|-------------|-------------|
+| PCR0 | Enclave image file | A contiguous measure of the contents of the EIF, excluding the section data. |
+| PCR1 | Linux kernel and bootstrap | A contiguous measurement of the kernel and boot ramfs data. |
+| PCR2 | Application | A contiguous, in-order measurement of the user applications, excluding the boot ramfs. |
+| PCR3 | IAM role assigned to the parent instance | A contiguous measurement of the IAM role assigned to the parent instance. Ensures that the attestation process succeeds only when the parent instance has the correct IAM role. |
+| PCR4 | Instance ID of the parent instance | A contiguous measurement of the ID of the parent instance. Ensures that the attestation process succeeds only when the parent instance has a specific instance ID. |
+| PCR8 | Enclave image file signing certificate | A measure of the signing certificate specified for the enclave image file. Ensures that the attestation process succeeds only when the enclave was booted from an enclave image file signed by a specific certificate. |
+
+> NOTE: PCR3 and PCR4 are runtime values generated when the enclave starts and are not part of EIF. These values are cryptographically derived from metadata associated with the EIF and launch context. While PCR3 and PCR4 are not file contents, they are part of the enclave’s measurement chain initiated by the EIF.
+
+#### Attestation Document Validation
+
+Nitro Enclaves use a multi-stage validation process:
+
+1. **PCR Validation** – Compare expected PCR values to those embedded in the document.
+
+2. **Signature Validation** – Using COSE Sign1, verify the document's signature with the public key from the attestation certificate.
+
+3. **Certificate Chain Validation** – Ensure the attestation certificate chains up to the AWS Nitro Enclaves root certificate.
+
+This process lets external systems confidently assert:
+
+> This request originated from an enclave running exactly the image, kernel, and application user expects, on an approved instance and IAM role, signed by a trusted certificate.
+
+### Virtual Socket (vSock)
+
+vSock is the only communication channel between the parent instance and its enclaves. This facilitates secure communication between the guest operating system (parent instance) and Nitro Enclaves. vSock utilizes standard, well-defined POSIX Sockets APIs (e.g., connect, listen, accept) on linux and Winsock2 on Windows to communicate with an enclave. Socket interface is defined by a enclave context ID (CID) and port number. The parent always uses CID 3.
+
+The enclaves are isolated from external sources and hence cannot directly communicate to external entities, it is only through the parent instance that all requests arrive to and dispatch from the enclaves.
+
+#### External to enclave communication
+
+<div
+  style={{
+    display: "flex",
+    justifyContent: "center",
+  }}
+>
+  <img
+    src="/img/diagrams/nitro-enclaves/external-enclave.png"
+    alt="External to enclave communication Diagram"
+    style={{ maxWidth: "90%", height: "auto" }}
+  />
+</div>
+
+#### Enclave to external communication (required during fetching shards from nodes)
+
+Nitro enclaves uses the vSock proxy to call the external endpoint through the parent instance's networking.
+
+<div
+  style={{
+    display: "flex",
+    justifyContent: "center",
+  }}
+>
+  <img
+    src="/img/diagrams/nitro-enclaves/enclave-external.png"
+    alt="Enclave to external communication Diagram"
+    style={{ maxWidth: "90%", height: "auto" }}
+  />
+</div>
+
+### AWS KMS Integration
+
+<div
+  style={{
+    display: "flex",
+    justifyContent: "center",
+  }}
+>
+  <img
+    src="/img/diagrams/nitro-enclaves/kms-integration.png"
+    alt="kms-integration Diagram"
+    style={{ maxWidth: "90%", height: "auto" }}
+  />
+</div>
+
+Nitro Enclaves includes built-in support for attestation with AWS KMS:
+
+- AWS KMS can ingest attestation documents presented by enclaves.
+
+- Using Nitro Enclaves SDK, enclave applications can perform KMS operations such as `Decrypt`, `GenerateDataKey`, `GenerateRandom`.
+
+- These calls attach the enclave's attestation document, allowing KMS to evaluate key policies that depend on enclave measurements.
+
+#### KMS Condition Keys and Key Policies
+
+KMS policies can reference Nitro Enclaves **condition keys** so that a cryptographic operation is allowed only when the attestation document's measurements (e.g., PCR0, PCR8) match expected values and the IAM role and instance ID from the attestation match a designated production environment.
+
+In practice, this allows key policies such as allow `Decrypt` only if:
+
+- EIF hash matches the production enclave image.
+
+- IAM role is the hardened production role.
+
+- Instance ID belongs to a specific cluster or account boundary."
+
+This model ensures that decrypting sensitive data keys is contingent not only on IAM but also on the enclave's TEE properties.
+
+#### KMS Proxy
+
+From an implementation standpoint, the parent instance is a blind transport for enclave–to-KMS conversations. It can route traffic, but it does not gain access to plaintext keys. Since enclaves have no network stack, enclave-to-KMS traffic is mediated via the KMS proxy running on the parent instance:
+
+- The enclave sends KMS requests over vsock.
+
+- The KMS proxy forwards them over the parent's network interface to AWS KMS.
+
+- Session-level security is end-to-end between KMS and the enclave; session traffic is protected from the parent and other enclaves.
+
+> Since KMS Proxy is an untrusted service, it could drop/delay requests or attempt replay attacks if `nonces` are not used in the attestation document.
+
+### AWS EKS Integration
+
+Nitro Enclaves can also be orchestrated from **Amazon EKS**, using a device plugin and Kubernetes resource specifications. The documentation describes:
+
+- A Nitro Enclaves Kubernetes device plugin that advertises enclave CPU resources.
+
+- A pod/deployment specification that requests:
+    - `aws.ec2.nitro/nitro_enclaves`.
+    - `aws.ec2.nitro/nitro_enclaves_cpus`.
+    - Huge pages for enclave memory.
+
+- The `enclavectl` tool to:
+    - Automatically generate Kubernetes deployment specs.
+    - Optionally deploy them directly or output them for manual deployment.
+
+This allows users to embed enclaves into containerized, orchestrated workloads while still preserving the enclave's isolation properties.
+
+### AWS ACM Integration
+
+AWS Certificate Manager (ACM) for Nitro Enclaves, allowing users to build TLS termination endpoints where the TLS private keys never leave the TEE, and access to those keys is contingent on attestation.
+
+At a high level:
+
+- ACM provisions and manages SSL/TLS certificates and keys.
+
+- ACM for Nitro Enclaves integrates with Nitro Enclaves so that the private key material is only accessible to an attested enclave.
+
+- Installation and configuration involve:
+    - Creating an ACM certificate.
+    - Preparing an enclave-enabled parent instance.
+    - Creating and attaching an IAM role with appropriate ACM permissions.
+    - Configuring the web server (e.g., running in or proxied to the enclave) to use ACM for Nitro Enclaves.
+
+### Secure Storage
+
+AWS Secret Manager can be used as SecretStore for public keys and sensitive data. The enclave can use it's private key to encrypt/decrypt the mappings. It's access controls can be configured via IAM policies to ensure that the SecretStore service can only be accessed by the enclave's validated attestation. Low level design to be updated.
+
+Once we have the encrypt/decrypt working from the parent instance, in next steps we will configure policies to ensure that only the enclave will be able to process sensitive data and also provide the attestation document to ensure the application running inside the TEE is genuine and untampered.
+
+## Workflow for Secure Data Processing with AWS Nitro Enclaves
+
+### Encryption Workflow
+
+- The system receives an API request containing plaintext data to be processed
+
+- The host constructs a JSON message containing the original plaintext and the retrieved public key.
+
+- **Secure Channel Preparation**:
+    - The host generates a data/ephemeral key using AWS KMS
+    - It encrypts the message using this data key
+    - It preserves the KMS-encrypted data key for the enclave
+
+#### Enclave Processing
+
+- The encrypted message and encrypted data key are transmitted to the Nitro Enclave via a VSOCK connection.
+
+- **Attestation-Based Decryption**:
+    - The enclave uses its credentials to call AWS KMS
+    - KMS verifies the enclave's attestation document and PCR measurements
+    - Only if verification succeeds will KMS decrypt the data key
+    - The enclave uses the decrypted data key to access the original plaintext.
+    - The enclave processes the plaintext.
+
+- **Attestation Document Generation**:
+    - The enclave calculates a SHA-256 hash of the encrypted message
+    - It creates a user data object containing this hash
+    - It requests an attestation document from the Nitro Security Module (NSM) that includes this user data
+    - The attestation document contains PCR measurements that uniquely identify the enclave environment
+
+- **Response Preparation**: The enclave prepares a response containing the encrypted message and the attestation document.
+
+#### Response Delivery via Host/Parent Instance
+
+- The host receives the enclave's response via VSOCK and formats it for client delivery
+
+- The system returns the encrypted message and attestation document to the client
+
+### Decryption Workflow
+
+#### Client Request Processing
+
+- The system receives a request with `encrypted_message` to be decrypted.
+
+- The host prepares a message containing the encrypted data for processing.
+
+#### Host Preparation
+
+- **Secure Channel Setup**:
+    - Similar to encryption, the host uses a data key to encrypt the request
+    - The encrypted message and encrypted data key are prepared for enclave transmission
+
+#### Enclave First-Stage Decryption
+
+- **Attestation-Based Access**:
+    - The enclave uses its credentials to call AWS KMS
+    - KMS verifies the enclave's attestation and PCR measurements
+    - Upon successful verification, KMS decrypts the data key
+
+- The enclave uses the decrypted data key to access the encrypted message information.
+
+- **Attestation Document Generation**:
+    - The enclave calculates a hash of the original encrypted data
+    - It creates an attestation document including this hash in the user data field
+    - This proves the data was decrypted in the expected environment
+
+- **Response Preparation**: The enclave prepares a response with the decrypted plaintext and attestation document.
+
+#### Response Delivery via Host/Parent Instance
+
+- The host receives and formats the enclave's response.
+
+- The system returns the decrypted plaintext and attestation document to the client.
+
+#### Attestation Verification Process
+
+The attestation verification is critical for security and consists of multiple stages:
+
+#### PCR Validation
+
+- The system extracts Platform Configuration Register (PCR) values from the attestation document.
+
+- If expected PCR values are provided, the system verifies that they match the values in the document.
+
+- PCR0: Measures the Enclave Image File (EIF)
+
+- PCR1: Measures user applications and configuration
+
+- PCR2: Measures any additional components loaded into the enclave
+
+#### Signature Verification
+
+- The system extracts the signing certificate from the attestation document.
+
+- From this certificate, the system extracts the public key parameters (x, y coordinates for EC keys).
+
+- The system constructs a COSE Sign1 message from the attestation document components.
+
+- Using the EC2 key (ECDSA with P-384 curve), the system verifies the signature against the message.
+
+#### Certificate Chain Validation
+
+- The system locates the AWS Nitro Enclaves root certificate.
+
+- The system builds a certificate store containing the root certificate and intermediate certificates from the attestation document's CA bundle.
+
+- The system verifies that the signing certificate is part of a valid chain of trust anchored by the AWS Nitro Enclaves root certificate.
+
+#### User Data Verification
+
+- The system extracts the user data field from the attestation document.
+
+- If the operation involved an encrypted message:
+    - The system calculates the SHA-256 hash of the encrypted message
+    - It compares this calculated hash with the hash recorded in the user data
+    - This confirms the attestation is specific to the exact data being processed
+
+- **PCR Commitment**: For operations with PCR commitments, the system verifies that the PCR values in user data match expected values.
+
+## Security Model and TEE Nature vs General Nitro System
+
+Both Nitro-based EC2 instances and Nitro Enclaves rely on the Nitro Hypervisor and Nitro hardware for isolation, but they differ significantly in capabilities and trust boundaries.
+
+| Aspect | Nitro-based EC2 Instance | Nitro Enclave (TEE) |
+|--------|--------------------------|----------------------|
+| Isolation foundation | Nitro Hypervisor, Nitro Cards | Same, plus additional intra-instance VM boundary |
+| OS & runtime | Full Linux/Windows with networking and storage | Minimal Linux OS, no network, no persistent storage |
+| Admin / operator access | Full admin/root possible | No interactive access; no SSH |
+| Connectivity | VPC networking, EBS/EFS, etc. | Only local vSock to parent |
+| Data-plane exposure | Apps and daemons exposed to network and disks | Only explicitly designed vSock protocols; no inbound network |
+| Attestation support | Instance identity documents | Rich cryptographic attestation document with PCR measurements |
+| Integration with KMS | IAM + instance identity | IAM + enclave attestation (PCRs, EIF hash, signer, instance ID, IAM role) |
+
+## Design & Implementation Considerations
+
+Deploying and maintaining a security-first system is a harder challenge than expected, even for professional cloud engineers. AWS documentation provides a high-level checklist for some considerations to keep in mind while working with Nitro Enclave systems:
+
+#### Minimizing the Trusted Computing Base (TCB)
+
+- Keep the enclave OS and application surface minimal.
+
+- Avoid unnecessary dependencies or daemons inside the enclave.
+
+- Use the Nitro Enclaves Developer AMI and SDK to structure applications around simple, well-defined vSock APIs.
+
+- Enclaves booted in debug mode generate attestation documents with PCRs that are made up entirely of zeros. These attestation documents can't be used for cryptographic attestation. It is imperative that any production deployment of Nitro Enclaves is not using `--debug-mode` or `--attach-console` launch parameters.
+
+#### Deterministic Builds and Stable PCRs
+
+PCR values depend on:
+
+- The EIF contents (PCR0).
+
+- The kernel and boot ramfs (PCR1).
+
+- The applications and configuration (PCR2).
+
+- The IAM role, instance ID, and signing certificate (PCR3, PCR4, PCR8).
+
+To make key policies usable and predictable:
+
+- Use reproducible build processes so that EIFs produce stable hashes.
+
+- Version enclave images and signing certificates carefully.
+
+- Treat PCR values and EIF hashes as versioned API contracts between the enclave and key/secret providers.
+
+#### Network and Storage Offload Patterns
+
+- The parent instance:
+    - Maintains VPC connectivity.
+    - Fetches ciphertexts or blobs from data stores.
+    - Proxies vSock requests to external services (like KMS via KMS proxy).
+
+- The enclave:
+    - Deals only with encrypted inputs and keys via vSock.
+    - Performs decryption and processing in memory.
+    - Returns only the necessary results to the parent.
+
+#### Multi-tenancy and Multiple Enclaves
+
+Because a single parent can run **up to four enclaves** and enclaves cannot communicate with one another, users can:
+
+- Separate distinct trust domains or tenants into separate enclaves.
+
+- Leverage the parent as an orchestration and routing layer while preserving strong inter-enclave isolation.
+
+#### Operational Controls and Governance
+
+With CloudTrail and KMS/ACM logs integrations offered by AWS, users can:
+
+- Audit which IAM identities create and manage enclaves.
+
+- Track when specific PCR-bound keys are used.
+
+- Monitor certificate issuance and renewal for ACM for Nitro Enclaves.
