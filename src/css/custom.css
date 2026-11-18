@@ -1,101 +1,926 @@
-/**
- * Any CSS included here will be global. The classic template
- * bundles Infima by default. Infima is a CSS framework designed to
- * work well for content-centric websites.
- */
-/* FONT IMPORT AND GLOBALIZATION */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./fonts/geist-mono-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4,
+    U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./fonts/geist-mono-latin.woff2') format('woff2');
+  unicode-range:
+    U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308,
+    U+329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF,
+    U+FFFD;
+}
 
 :root {
-  --ifm-font-family-base:
-    'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    sans-serif;
+  --handbook-background: #fafafa;
+  --handbook-foreground: #0a0a0a;
+  --handbook-text: #454545;
+  --handbook-muted: #666;
+  --handbook-border: #a9a9a9;
+  --handbook-hover: #e6e6e6;
+  --handbook-raised: #ebebeb;
+  --handbook-subtle: #f2f2f2;
+  --handbook-addition: #216e39;
+  --handbook-deletion: #a40e26;
+  --handbook-gutter: 1.5rem;
 
-  --ifm-heading-font-family: 'Inter', system-ui, sans-serif;
-}
-:root {
-  --ifm-font-size-base: 16.5px;
-  --ifm-line-height-base: 1.75;
+  --ifm-font-family-monospace: 'Geist Mono', ui-monospace, monospace;
+  --ifm-font-family-base: var(--ifm-font-family-monospace);
+  --ifm-heading-font-family: var(--ifm-font-family-base);
+  --ifm-font-size-base: 100%;
+  --ifm-line-height-base: 1.625;
+  --ifm-heading-line-height: 1.25;
+  --ifm-heading-color: var(--handbook-foreground);
+  --ifm-font-color-base: var(--handbook-text);
+  --ifm-color-content: var(--handbook-text);
+  --ifm-color-content-secondary: var(--handbook-muted);
+  --ifm-background-color: var(--handbook-background);
+  --ifm-background-surface-color: var(--handbook-background);
+  --ifm-color-primary: var(--handbook-foreground);
+  --ifm-color-primary-dark: #292929;
+  --ifm-color-primary-darker: #1f1f1f;
+  --ifm-color-primary-darkest: #191919;
+  --ifm-color-primary-light: #292929;
+  --ifm-color-primary-lighter: #454545;
+  --ifm-color-primary-lightest: #666;
+  --ifm-link-color: var(--handbook-text);
+  --ifm-link-hover-color: var(--handbook-foreground);
+  --ifm-global-radius: 0;
+  --ifm-code-border-radius: 0;
+  --ifm-code-background: var(--handbook-hover);
+  --ifm-code-font-size: 100%;
+  --ifm-pre-font-size: 0.875rem;
+  --ifm-pre-line-height: 1.625;
+  --ifm-pre-padding: 1rem;
+  --ifm-navbar-height: 3rem;
+  --ifm-navbar-background-color: var(--handbook-background);
+  --ifm-navbar-shadow: none;
+  --ifm-navbar-link-color: var(--handbook-text);
+  --ifm-navbar-link-hover-color: var(--handbook-foreground);
+  --ifm-menu-color: var(--handbook-muted);
+  --ifm-menu-color-active: var(--handbook-foreground);
+  --ifm-menu-color-background-active: var(--handbook-hover);
+  --ifm-menu-color-background-hover: var(--handbook-hover);
+  --ifm-toc-border-color: var(--handbook-border);
+  --ifm-toc-link-color: var(--handbook-muted);
+  --ifm-breadcrumb-color-active: var(--handbook-text);
+  --ifm-breadcrumb-item-background-active: transparent;
+  --ifm-pagination-nav-color-hover: var(--handbook-border);
+  --ifm-table-border-color: var(--handbook-border);
+  --ifm-table-stripe-background: transparent;
+  --ifm-footer-background-color: var(--handbook-background);
+  --ifm-footer-color: var(--handbook-text);
+  --ifm-footer-link-color: var(--handbook-text);
+  --ifm-footer-link-hover-color: var(--handbook-foreground);
+  --ifm-footer-padding-vertical: 0;
+  --ifm-footer-padding-horizontal: 0;
+  --doc-sidebar-width: 20rem;
+  --docusaurus-highlighted-code-line-bg: #e6e6e6;
 }
 
-.markdown h1 {
-  font-weight: 700;
-}
-
-.markdown h2,
-.markdown h3 {
-  font-weight: 600;
-}
-
-.markdown p {
-  letter-spacing: -0.01em;
-}
-
-/* You can override the default Infima variables here. */
-:root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  --ifm-color-primary-darker: #277148;
-  --ifm-color-primary-darkest: #205d3b;
-  --ifm-color-primary-light: #33925d;
-  --ifm-color-primary-lighter: #359962;
-  --ifm-color-primary-lightest: #3cad6e;
-  --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
-  --logo-color: #0a0a0a;
-}
-
-/* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
-  --logo-color: #fafafa;
+  --handbook-background: #0a0a0a;
+  --handbook-foreground: #fafafa;
+  --handbook-text: #cacaca;
+  --handbook-muted: #a9a9a9;
+  --handbook-border: #2e2e2e;
+  --handbook-hover: #292929;
+  --handbook-raised: #1f1f1f;
+  --handbook-subtle: #191919;
+  --handbook-addition: #7ee787;
+  --handbook-deletion: #ff7b72;
+
+  --ifm-background-color: var(--handbook-background);
+  --ifm-background-surface-color: var(--handbook-background);
+  --ifm-color-primary-dark: #cacaca;
+  --ifm-color-primary-darker: #bdbdbd;
+  --ifm-color-primary-darkest: #a9a9a9;
+  --ifm-color-primary-light: #fcfcfc;
+  --ifm-color-primary-lighter: #fdfdfd;
+  --ifm-color-primary-lightest: #fff;
+  --ifm-code-background: var(--handbook-hover);
+  --docusaurus-highlighted-code-line-bg: #292929;
 }
 
+::selection {
+  color: var(--handbook-background);
+  background: var(--handbook-foreground);
+}
+
+:where(a, button, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--handbook-foreground);
+  outline-offset: 2px;
+}
+
+/* Navigation */
 .navbar {
-  box-shadow: none;
+  border-block-end: 1px solid var(--handbook-border);
+  padding: 0 0.75rem;
 }
 
-.navbar__title {
-  font-weight: 600;
+.navbar__brand {
+  min-width: 0;
+  height: 100%;
+  margin-inline-end: 0;
 }
 
-/* Hide mobile "On this page" TOC button */
-@media (max-width: 996px) {
-  .theme-doc-toc-mobile,
-  .theme-doc-toc-mobile-toggle {
-    display: none !important;
-  }
-}
-
-/* Center the footer container */
-.footer__links {
-  display: flex;
-  justify-content: center;
-}
-
-/* THIS is the key fix */
-.footer__items {
-  display: flex;
-  flex-direction: row;
-  gap: 1.5rem;
-  justify-content: center;
-}
-
-/* Remove default list behavior */
-.footer__items {
-  padding: 0;
+.navbar__logo {
+  width: auto;
+  max-width: 100%;
+  height: 1.5rem;
   margin: 0;
+}
+
+.navbar__logo img {
+  width: auto;
+  max-width: 100%;
+  height: 100%;
+  vertical-align: top;
+}
+
+[data-theme='dark'] .navbar__logo img {
+  filter: invert(1);
+}
+
+.navbar__link:hover,
+.navbar__toggle:hover {
+  background: var(--handbook-hover);
+}
+
+.navbar__toggle {
+  color: var(--handbook-foreground);
+}
+
+.theme-layout-navbar-left {
+  gap: 0.5rem;
+}
+
+.theme-layout-navbar-left .navbar__toggle {
+  flex-shrink: 0;
+  margin-inline-end: 0;
+}
+
+.handbook-version-switcher {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.handbook-version-switcher summary {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.375rem;
+  padding-inline: 0.25rem;
+  color: var(--handbook-text);
+  cursor: pointer;
   list-style: none;
 }
 
-/* Footer links */
-.footer__link-item {
+.handbook-version-switcher summary::-webkit-details-marker {
+  display: none;
+}
+
+.handbook-version-switcher summary::after {
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-block-start: -0.2rem;
+  border: solid currentColor;
+  border-width: 0 1px 1px 0;
+  transform: rotate(45deg);
+  content: '';
+}
+
+.handbook-version-switcher[open] summary::after {
+  margin-block-start: 0.2rem;
+  transform: rotate(225deg);
+}
+
+.handbook-version-switcher summary span {
+  padding: 0.125rem 0.375rem;
+  color: var(--handbook-text);
+  background: var(--handbook-raised);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.handbook-version-switcher summary:is(:hover, :focus-visible) span,
+.handbook-version-switcher[open] summary span {
+  color: var(--handbook-foreground);
+  background: var(--handbook-hover);
+}
+
+.handbook-version-options {
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline-end: 0;
+  min-width: max-content;
   margin: 0;
+  border: 1px solid var(--handbook-border);
+  background: var(--handbook-background);
+}
+
+.handbook-version-options .dropdown__link {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  padding: 0.5rem 0.875rem;
+  color: var(--handbook-text);
+  font-size: 0.875rem;
+}
+
+.handbook-version-options li + li {
+  border-block-start: 1px solid var(--handbook-border);
+}
+
+.handbook-version-options
+  .dropdown__link:is(:hover, :focus-visible, [aria-current]) {
+  color: var(--handbook-foreground);
+  background: var(--handbook-hover);
+}
+
+.handbook-version-options .dropdown__link[aria-current] {
+  font-weight: 600;
+}
+
+.navbar-sidebar {
+  box-shadow: none;
+  border-inline-end: 1px solid var(--handbook-border);
+}
+
+.navbar-sidebar__brand {
+  border-block-end: 1px solid var(--handbook-border);
+  box-shadow: none;
+}
+
+.theme-doc-sidebar-menu .menu__link,
+.theme-doc-sidebar-menu .menu__list-item-collapsible {
+  border-radius: 0;
+}
+
+.theme-doc-sidebar-menu .menu__link {
+  min-height: 2.75rem;
+  overflow-wrap: anywhere;
+}
+
+.theme-doc-sidebar-menu .menu__link[aria-current='page'] {
+  color: var(--handbook-foreground);
+  font-weight: 600;
+}
+
+.theme-doc-sidebar-menu .menu__list .menu__list .menu__link {
+  --ifm-menu-color-background-active: var(--handbook-raised);
+  --ifm-menu-color-background-hover: var(--handbook-raised);
+}
+
+.theme-doc-sidebar-menu .menu__list .menu__list .menu__list .menu__link {
+  --ifm-menu-color-background-active: var(--handbook-subtle);
+  --ifm-menu-color-background-hover: var(--handbook-subtle);
+}
+
+/* The classic layout gives the outer container utility padding. Move that
+ * padding to the article column so the chapter artwork can meet its edges. */
+.docs-doc-page .theme-layout-main main > .container {
+  display: flex;
+  width: 100%;
+  max-width: none;
+  flex-direction: column;
+  padding-inline: 0;
+}
+
+.docs-doc-page .theme-layout-main main > .container > .row {
+  flex: 1;
+  margin: 0;
+}
+
+.docs-doc-page .theme-layout-main main > .container > .row > .col {
+  min-width: 0;
+  padding-inline: var(--handbook-gutter);
+}
+
+.docs-doc-page
+  .theme-layout-main
+  main
+  > .container
+  > .row
+  > .col:has(.theme-doc-markdown) {
+  padding-block-end: 4.5rem;
+}
+
+.theme-doc-breadcrumbs {
+  position: sticky;
+  z-index: 2;
+  top: var(--ifm-navbar-height);
+  margin: 0 calc(-1 * var(--handbook-gutter));
+  padding-inline: var(--handbook-gutter);
+  border-block-end: 1px solid var(--handbook-border);
+  background: var(--handbook-background);
+}
+
+.theme-doc-breadcrumbs .breadcrumbs {
+  display: flex;
+  align-items: center;
+  min-height: 3rem;
+}
+
+.theme-doc-breadcrumbs .breadcrumbs__item {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.theme-doc-breadcrumbs .breadcrumbs__item::after {
+  flex: none;
+}
+
+.theme-doc-breadcrumbs .breadcrumbs__link {
+  display: block;
+  overflow: hidden;
+  color: var(--handbook-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.theme-doc-breadcrumbs .breadcrumbs__item--active .breadcrumbs__link {
+  color: var(--handbook-text);
+}
+
+.theme-doc-toc-desktop {
+  top: var(--ifm-navbar-height);
+  max-height: calc(100vh - var(--ifm-navbar-height));
+  max-height: calc(100dvh - var(--ifm-navbar-height));
+  overflow-wrap: anywhere;
+}
+
+.theme-doc-toc-desktop .table-of-contents {
+  --ifm-toc-padding-horizontal: 0.875rem;
+  border-inline-start: 0;
+  padding-block: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.theme-doc-toc-desktop .table-of-contents li {
+  margin-inline-start: 0;
+}
+
+.theme-doc-toc-desktop .table-of-contents__link--active {
+  color: var(--handbook-foreground);
+  font-weight: 600;
+}
+
+/* Keep the handbook's existing mobile TOC behavior. */
+@media (max-width: 996px) {
+  .theme-doc-toc-mobile {
+    display: none;
+  }
+
+  .theme-doc-breadcrumbs {
+    position: static;
+    padding-inline: 0.75rem;
+  }
+
+  .theme-doc-breadcrumbs .breadcrumbs {
+    --ifm-breadcrumb-spacing: 0.25rem;
+    flex-wrap: wrap;
+    row-gap: 0.25rem;
+    padding-block: 0.5rem;
+  }
+
+  .theme-doc-breadcrumbs .breadcrumbs__item {
+    max-width: 100%;
+  }
+
+  .theme-doc-breadcrumbs .breadcrumbs__link {
+    overflow: visible;
+    overflow-wrap: anywhere;
+    padding-inline: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-transform: none;
+    white-space: normal;
+  }
+
+  .theme-doc-breadcrumbs
+    .breadcrumbs__item:has(> .breadcrumbs__link > svg)
+    + .breadcrumbs__item {
+    max-width: calc(100% - 3rem);
+  }
+
+  .theme-doc-breadcrumbs .breadcrumbs__item--active .breadcrumbs__link {
+    background: var(--handbook-raised);
+  }
+
+  .theme-doc-markdown :is(h2, h3, h4, h5, h6)[id] {
+    --handbook-anchor-gap: 1rem;
+  }
+}
+
+/* Article */
+.chapter-banner {
+  position: relative;
+  display: flex;
+  min-height: 14.125rem;
+  flex-direction: column;
+  justify-content: end;
+  margin: 0 calc(-1 * var(--handbook-gutter)) 3rem;
+  background: var(--handbook-raised);
+}
+
+.chapter-banner__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.chapter-banner__caption {
+  --ifm-heading-color: #fafafa;
+  position: relative;
+  padding: 1rem var(--handbook-gutter);
+  color: #fafafa;
+  background: rgb(10 10 10 / 85%);
+}
+
+.chapter-banner__caption > :last-child {
+  margin-bottom: 0;
+}
+
+.theme-doc-markdown {
+  min-width: 0;
+  color: var(--handbook-text);
+  overflow-wrap: anywhere;
+}
+
+.theme-doc-markdown header > h1,
+.theme-doc-markdown > h1 {
+  margin-block: 0 2rem;
+  font-size: 1.5rem;
+  letter-spacing: -0.025em;
+}
+
+.theme-doc-markdown h2 {
+  margin: 1.5rem 0;
+  font-size: 1.25rem;
+}
+
+.theme-doc-markdown h3 {
+  margin: 1rem 0;
+  font-size: 1.125rem;
+}
+
+.theme-doc-markdown h4 {
+  margin: 0.75rem 0;
+  font-size: 1rem;
+}
+
+.theme-doc-markdown h5 {
+  margin: 0.5rem 0;
+  font-size: 0.875rem;
+}
+
+.theme-doc-markdown h6 {
+  margin: 0.5rem 0;
+  font-size: 0.75rem;
+}
+
+.theme-doc-markdown :is(h2, h3, h4, h5, h6) {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.theme-doc-markdown :is(h2, h3, h4, h5, h6)[id] {
+  scroll-margin-top: calc(
+    var(--ifm-navbar-height) + var(--handbook-anchor-gap, 3.75rem)
+  );
+}
+
+.theme-doc-markdown :is(p, ul, ol) {
+  margin-block-end: 1rem;
+}
+
+.theme-doc-markdown > ul,
+.theme-doc-markdown li > ul {
+  list-style-type: square;
+}
+
+.theme-doc-markdown ol ol {
+  list-style-type: lower-alpha;
+}
+
+.theme-doc-markdown ol ol ol {
+  list-style-type: lower-roman;
+}
+
+.theme-doc-markdown a:not(.hash-link) {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.theme-doc-markdown blockquote {
+  margin: 2rem 0;
+  padding: 0.25rem 0.5rem 0.25rem 1rem;
+  border-inline-start: 0.375rem solid var(--handbook-muted);
+  color: inherit;
+  font-size: 1rem;
+}
+
+.theme-doc-markdown hr {
+  height: 0;
+  margin-block: 2rem;
+  border: 0;
+  border-block-start: 1px solid var(--handbook-border);
+  background: none;
+}
+
+.theme-doc-markdown strong {
+  color: var(--handbook-foreground);
+}
+
+.theme-doc-markdown :not(pre) > code {
+  border: 0;
+  padding: 0.125em 0.375em;
+}
+
+.theme-doc-markdown :is(figure, table) {
+  margin-block: 2rem;
+}
+
+.theme-doc-markdown table {
+  font-size: 0.875rem;
+  overflow-wrap: break-word;
+}
+
+.theme-doc-markdown :is(th, td) {
+  padding: 0.5rem 1rem;
+}
+
+.theme-doc-markdown th {
+  color: var(--handbook-foreground);
+  background: var(--handbook-raised);
+  text-align: start;
+}
+
+.theme-doc-markdown tr:hover td {
+  background: var(--handbook-subtle);
+}
+
+.theme-doc-markdown .theme-admonition {
+  color: var(--handbook-text);
+  background: var(--handbook-subtle);
+  border: 1px solid var(--handbook-border);
+  box-shadow: none;
+}
+
+/* Fenced blocks keep Prism and the classic theme's controls. The class
+ * prefixes isolate the three non-public hooks to this component. */
+.theme-doc-markdown .theme-code-block {
+  margin-block: 2.5rem;
+  border: 1px solid var(--handbook-border);
+  border-radius: 2px;
+  box-shadow: none;
+  overflow-wrap: normal;
+}
+
+.theme-doc-markdown .theme-code-block > [class^='codeBlockTitle_'] {
+  border-bottom-color: var(--handbook-border);
+  background: var(--handbook-raised);
+}
+
+.theme-code-block > [class^='codeBlockContent_']:first-child {
+  padding-block-start: 2.375rem;
+}
+
+.theme-code-block > [class^='codeBlockContent_']:first-child::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2.375rem;
+  border-bottom: 1px solid var(--handbook-border);
+  background:
+    radial-gradient(circle, #ff5f57 0 5.5px, transparent 6px) 1rem center / 12px
+      12px no-repeat,
+    radial-gradient(circle, #febc2e 0 5.5px, transparent 6px) 2.125rem center /
+      12px 12px no-repeat,
+    radial-gradient(circle, #29c840 0 5.5px, transparent 6px) 3.25rem center /
+      12px 12px no-repeat,
+    var(--handbook-raised);
+  content: '';
+  pointer-events: none;
+}
+
+.theme-code-block [class^='buttonGroup_'] {
+  top: 0.25rem;
+  right: 0.375rem;
+}
+
+.theme-code-block [class^='buttonGroup_'] button,
+.theme-code-block:hover [class^='buttonGroup_'] button {
+  min-width: 1.875rem;
+  min-height: 1.875rem;
+  justify-content: center;
+  border-color: transparent;
+  color: var(--handbook-text);
+  background: transparent;
+  opacity: 1;
+}
+
+.theme-code-block [class^='buttonGroup_'] button:hover {
+  background: var(--handbook-hover);
+}
+
+.theme-code-block pre:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Doc metadata, pagination and site footer */
+.theme-doc-footer {
+  color: var(--handbook-muted);
+}
+
+.pagination-nav {
+  gap: 0.75rem;
+}
+
+.pagination-nav__link {
+  padding: 1rem;
+  border-color: var(--handbook-border);
+}
+
+.pagination-nav__link:hover {
+  background: var(--handbook-hover);
+}
+
+.pagination-nav__sublabel {
+  margin-bottom: 0.5rem;
+  color: var(--handbook-text);
+  font-weight: 600;
+}
+
+.pagination-nav__label {
+  color: var(--handbook-foreground);
+  overflow-wrap: anywhere;
+}
+
+.theme-back-to-top-button {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--handbook-border);
+  border-radius: 0;
+  color: var(--handbook-text);
+  background: var(--handbook-raised);
+  box-shadow: none;
+}
+
+.theme-back-to-top-button::after {
+  width: 0.75rem;
+  height: 0.75rem;
+  border: solid currentColor;
+  border-width: 2px 0 0 2px;
+  background: none;
+  mask: none;
+  transform: translateY(0.1875rem) rotate(45deg);
+}
+
+.theme-back-to-top-button:is(:hover, :focus-visible) {
+  color: var(--handbook-foreground);
+  background: var(--handbook-hover);
+}
+
+.footer {
+  border-block: 1px solid var(--handbook-border);
+}
+
+.footer > .container {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+}
+
+.footer__links {
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+}
+
+.footer__col {
+  flex: 0 1 auto;
+  margin: 0;
+  padding: 0;
+}
+
+.footer__title:empty {
+  display: none;
+}
+
+.footer__items {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+}
+
+.footer__link-item {
+  display: block;
+  padding: 0.75rem;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.footer__link-item:hover {
+  background: var(--handbook-hover);
+}
+
+.footer-social-link {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  place-items: center;
+  border-inline-end: 1px solid var(--handbook-border);
+}
+
+.footer__item:first-child .footer-social-link {
+  border-inline-start: 1px solid var(--handbook-border);
+}
+
+.footer-social-link svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.footer-social-link:focus-visible {
+  color: var(--handbook-foreground);
+  background: var(--handbook-hover);
+  outline-offset: -3px;
+}
+
+.footer__bottom {
+  padding: 0.75rem;
+  border-block-start: 1px solid var(--handbook-border);
+  background: var(--handbook-subtle);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --handbook-gutter: 2rem;
+    --ifm-pre-font-size: 1rem;
+    --ifm-pre-padding: 1.5rem;
+  }
+
+  .chapter-banner {
+    min-height: 19rem;
+  }
+
+  .theme-doc-markdown header > h1,
+  .theme-doc-markdown > h1 {
+    font-size: 2rem;
+  }
+
+  .theme-doc-markdown h2 {
+    font-size: 1.5rem;
+  }
+
+  .theme-doc-markdown h3 {
+    font-size: 1.25rem;
+  }
+
+  .theme-doc-markdown h4 {
+    font-size: 1.125rem;
+  }
+
+  .theme-doc-markdown h5 {
+    font-size: 1rem;
+  }
+
+  .theme-doc-markdown h6 {
+    font-size: 0.875rem;
+  }
+
+  .pagination-nav__link {
+    padding: 1.5rem;
+  }
+
+  .pagination-nav__label {
+    font-size: 1.25rem;
+  }
+}
+
+@media (min-width: 997px) {
+  :root {
+    --handbook-toc-width: clamp(11.5rem, 20vw, 18.75rem);
+    --ifm-navbar-height: 4.5rem;
+  }
+
+  .navbar {
+    padding: 0;
+  }
+
+  .theme-layout-navbar-left {
+    flex: 0 0 var(--doc-sidebar-width);
+    padding-inline: 1rem;
+    border-inline-end: 1px solid var(--handbook-border);
+  }
+
+  .navbar__logo {
+    height: 2rem;
+  }
+
+  .theme-layout-navbar-right {
+    margin-inline-start: auto;
+    padding-inline-end: 1rem;
+    border-inline-start: 1px solid var(--handbook-border);
+  }
+
+  .docs-doc-page:has(.theme-doc-toc-desktop .table-of-contents)
+    .theme-layout-navbar-right {
+    flex-basis: var(--handbook-toc-width);
+  }
+
+  .theme-layout-navbar-right > .handbook-website-link {
+    display: flex;
+    height: 100%;
+    flex: 1 0 auto;
+    align-items: center;
+    justify-content: center;
+    margin-inline-end: 1rem;
+    padding-inline: 1rem;
+    border-inline-end: 1px solid var(--handbook-border);
+    font-size: 1.125rem;
+    font-weight: 400;
+  }
+
+  .menu:has(> .theme-doc-sidebar-menu) {
+    padding-block-start: 0;
+  }
+
+  .theme-doc-sidebar-menu .menu__link {
+    padding: 0.85rem 1rem;
+  }
+
+  .docs-doc-page
+    .theme-layout-main
+    main
+    > .container
+    > .row
+    > .col:has(.theme-doc-markdown) {
+    flex: 1 1 0;
+  }
+
+  .docs-doc-page
+    .theme-layout-main
+    main
+    > .container
+    > .row
+    > .col:has(.theme-doc-toc-desktop .table-of-contents) {
+    flex: 0 0 var(--handbook-toc-width);
+    max-width: none;
+    padding: 0;
+    border-inline-start: 1px solid var(--handbook-border);
+  }
+
+  .col:has(> .theme-doc-toc-desktop:empty) {
+    display: none;
+  }
+}
+
+/* Match the layers that own these important classic layout declarations. */
+@layer docusaurus.infima {
+  .docs-doc-page .theme-layout-main main > .container {
+    padding-block: 0 !important;
+  }
+}
+
+@layer docusaurus.theme-classic {
+  @media (min-width: 997px) {
+    .docs-doc-page
+      .theme-layout-main
+      main
+      > .container
+      > .row
+      > .col:has(.theme-doc-markdown) {
+      max-width: none !important;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ifm-transition-fast: 0s;
+    --ifm-transition-slow: 0s;
+  }
 }

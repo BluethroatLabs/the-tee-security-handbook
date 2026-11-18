@@ -1,16 +1,8 @@
 .directory {
-  --ledger-line: color-mix(in oklch, currentColor 14%, transparent);
-  --ledger-muted: color-mix(in oklch, currentColor 62%, transparent);
-  --ledger-soft: color-mix(
-    in oklch,
-    var(--ifm-color-primary) 8%,
-    var(--ifm-background-color)
-  );
-  --ledger-raised: color-mix(
-    in oklch,
-    currentColor 3%,
-    var(--ifm-background-color)
-  );
+  --ledger-line: var(--handbook-border);
+  --ledger-muted: var(--handbook-muted);
+  --ledger-soft: var(--handbook-hover);
+  --ledger-raised: var(--handbook-subtle);
   margin: 2rem 0 0 0;
 }
 
@@ -48,7 +40,6 @@
   margin-top: 1rem;
   padding: 0.8rem 1rem;
   border: 1px solid color-mix(in oklch, #d79524 45%, transparent);
-  border-radius: 0.55rem;
   background: color-mix(in oklch, #d79524 10%, transparent);
   font-size: 0.82rem;
 }
@@ -66,7 +57,6 @@
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--ledger-line);
-  border-radius: 0.9rem;
   background: var(--ledger-raised);
 }
 
@@ -140,7 +130,6 @@
   margin: 0.55rem 0 0;
   padding: 0.18rem 0.5rem;
   border: 1px solid var(--ledger-line);
-  border-radius: 999px;
   color: var(--ledger-muted);
   font-size: 0.64rem;
   font-weight: 650;
@@ -197,14 +186,12 @@
   height: 0.3rem;
   margin-top: 0.7rem;
   overflow: hidden;
-  border-radius: 999px;
   background: var(--ledger-line);
 }
 
 .track span {
   display: block;
   height: 100%;
-  border-radius: inherit;
   background: var(--ifm-color-primary);
 }
 
@@ -231,11 +218,11 @@
 }
 
 .added {
-  color: oklch(62% 0.15 152deg);
+  color: var(--handbook-addition);
 }
 
 .removed {
-  color: oklch(62% 0.16 24deg);
+  color: var(--handbook-deletion);
 }
 
 .lastActive {
@@ -294,7 +281,6 @@
   overflow: hidden;
   flex-direction: column;
   border: 1px solid var(--ledger-line);
-  border-radius: 0.9rem;
   background: var(--ledger-raised);
 }
 
@@ -363,12 +349,4 @@
   .profilePeople {
     grid-template-columns: 1fr;
   }
-}
-
-[data-theme='dark'] .added {
-  color: oklch(76% 0.14 152deg);
-}
-
-[data-theme='dark'] .removed {
-  color: oklch(72% 0.15 24deg);
 }

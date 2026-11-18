@@ -9,28 +9,23 @@ export default function PageBanner({
   title,
   subtitle,
   image,
-  backgroundPosition = 'center top',
+  backgroundPosition = 'center',
 }: Props) {
   return (
-    <div
-      style={{
-        marginTop: '1.5rem',
-        marginBottom: '2.5rem',
-        padding: '3rem 2rem',
-        aspectRatio: '16 / 4',
-        borderRadius: '16px',
-        width: '100%',
-        background: image
-          ? `url(${image})`
-          : 'linear-gradient(135deg, #1e293b, #0f172a)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center top',
-        color: 'white',
-      }}
-    >
-      {title && <h1 style={{ marginBottom: '0.5rem' }}>{title}</h1>}
-      {subtitle && (
-        <p style={{ fontSize: '1.1rem', opacity: 0.9 }}>{subtitle}</p>
+    <div className="chapter-banner">
+      {image && (
+        <img
+          className="chapter-banner__image"
+          src={image}
+          alt=""
+          style={{ objectPosition: backgroundPosition }}
+        />
+      )}
+      {(title || subtitle) && (
+        <div className="chapter-banner__caption">
+          {title && <h1>{title}</h1>}
+          {subtitle && <p>{subtitle}</p>}
+        </div>
       )}
     </div>
   )
